@@ -50,7 +50,7 @@ export default function Header() {
             <div className="bg-orange-primary p-3 rounded-full">
               <ChefHat className="w-8 h-8 text-white-primary" />
             </div>
-            <span className="text-2xl font-bold text-brown-primary dark:text-dark-text transition-colors duration-300">FoodAI</span>
+            <span className="text-2xl font-bold text-brown-primary dark:text-dark-text transition-colors duration-300">TastyMind</span>
           </motion.div>
           
           <motion.div
