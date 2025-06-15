@@ -72,7 +72,7 @@ const Forus = () => {
           >
         
             <h1 className="text-lg font-bold text-muted-foreground max-w-3xl mx-auto dark:text-gray-300">
-              Chào mừng bạn đến với FoodAI – nền tảng gợi ý món ăn thông minh đầu tiên tại Việt Nam, 
+              Chào mừng bạn đến với TastyMind – nền tảng gợi ý món ăn thông minh đầu tiên tại Việt Nam, 
               nơi kết hợp giữa công nghệ trí tuệ nhân tạo (AI) và hiểu biết sâu sắc về văn hóa ẩm thực.
             </h1>
           </motion.div>
@@ -218,7 +218,7 @@ const Forus = () => {
             <Card className="border-border bg-card dark:bg-dark-card dark:border-neutral-700">
               <CardContent className="p-8">
                 <p className="text-muted-foreground dark:text-gray-300">
-                  Cảm ơn bạn đã tin tưởng và đồng hành cùng chúng tôi. Hãy để FoodAI là người bạn 
+                  Cảm ơn bạn đã tin tưởng và đồng hành cùng chúng tôi. Hãy để TastyMind là người bạn 
                   đồng hành đáng tin cậy trong hành trình khám phá và tận hưởng ẩm thực mỗi ngày của bạn.
                 </p>
               </CardContent>

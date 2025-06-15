@@ -1,6 +1,0 @@
-{
-  "/experience/page": "app/experience/page.js",
-  "/login/page": "app/login/page.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/page": "app/page.js"
-}

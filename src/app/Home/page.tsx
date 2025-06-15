@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { motion} from 'framer-motion'
 import Link from 'next/link'
@@ -77,7 +79,7 @@ export default function home() {
             viewport={{ once: true }}
             className="text-4xl md:text-5xl font-bold text-center mb-16 text-brown-primary dark:text-dark-text"
           >
-            Tại Sao Chọn FoodAI?
+            Tại Sao Chọn TastyMind?
           </motion.h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
