@@ -1,0 +1,39 @@
+import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import User from '@/models/User'
+import connectDB from '@/lib/mongodb'
+import bcrypt from 'bcryptjs'
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ message: 'Unauthorized', success: false }, { status: 401 })
+    }
+
+    const { currentPassword, newPassword } = await request.json()
+    if (!currentPassword || !newPassword) {
+      return NextResponse.json({ message: 'Thiếu thông tin', success: false }, { status: 400 })
+    }
+
+    await connectDB()
+    const user = await User.findOne({ email: session.user.email })
+    if (!user || !user.password) {
+      return NextResponse.json({ message: 'Không tìm thấy người dùng hoặc tài khoản không có mật khẩu' }, { status: 404 })
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password)
+    if (!isMatch) {
+      return NextResponse.json({ message: 'Mật khẩu hiện tại không đúng', success: false }, { status: 400 })
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    user.password = hashedPassword
+    await user.save()
+
+    return NextResponse.json({ message: 'Đổi mật khẩu thành công!', success: true }, { status: 200 })
+  } catch (error) {
+    console.error('Error changing password:', error)
+    return NextResponse.json({ message: 'Lỗi máy chủ', success: false }, { status: 500 })
+  }
+} 

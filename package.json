@@ -1,0 +1,52 @@
+{
+  "name": "ai-food-recommendation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@auth/mongodb-adapter": "^3.9.1",
+    "@pinecone-database/pinecone": "^2.2.1",
+    "@prisma/client": "^6.9.0",
+    "@radix-ui/react-alert-dialog": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/uuid": "^10.0.0",
+    "@xenova/transformers": "^2.17.2",
+    "bcryptjs": "^3.0.2",
+    "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.6.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.294.0",
+    "mongodb": "^6.17.0",
+    "mongoose": "^8.15.1",
+    "next": "14.0.4",
+    "next-auth": "^5.0.0-beta.28",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^3.3.1",
+    "uuid": "^11.1.0",
+    "zxcvbn": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/zxcvbn": "^4.4.5",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.0.4",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.3"
+  }
+}
