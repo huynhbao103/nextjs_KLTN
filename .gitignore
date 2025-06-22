@@ -10,4 +10,3 @@ node_modules
 
 .env.test.local
 *.md
-.md 
