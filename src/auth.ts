@@ -5,8 +5,11 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import dbConnect from "@/lib/dbConnect"
 import User from "@/models/User"
+import { MongoDBAdapter } from "@auth/mongodb-adapter"
+import clientPromise from "@/lib/mongodb-adapter"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: MongoDBAdapter(clientPromise),
   providers: [
     GithubProvider({
       clientId: process.env.AUTH_GITHUB_ID!,
@@ -45,7 +48,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           if (!user.password) {
-            throw new Error('Tài khoản này chưa được thiết lập mật khẩu. Vui lòng đăng nhập bằng GitHub')
+            throw new Error('Tài khoản này chưa được thiết lập mật khẩu. Vui lòng đăng nhập bằng GitHub hoặc Google')
           }
 
           const isPasswordValid = await bcrypt.compare(
@@ -76,68 +79,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account, profile }: any) {
-      if (account?.provider === "github") {
-        try {
-          await dbConnect()
-          const existingUser = await User.findOne({ email: user.email })
-          console.log('GitHub signIn - Existing user:', { 
-            exists: !!existingUser, 
-            hasPassword: !!existingUser?.password,
-            email: existingUser?.email 
-          })
-          
-          if (!existingUser) {
-            // Tạo user mới với mật khẩu ngẫu nhiên
-            const randomPassword = Math.random().toString(36).slice(-8)
-            const hashedPassword = await bcrypt.hash(randomPassword, 10)
-            console.log('GitHub signIn - Creating new user with password')
-            
-            const newUser = await User.create({
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              password: hashedPassword,
-            })
-            console.log('GitHub signIn - New user created:', { 
-              id: newUser._id,
-              hasPassword: !!newUser.password 
-            })
-          } else {
-            // Nếu user đã tồn tại nhưng chưa có mật khẩu, tạo mật khẩu ngẫu nhiên
-            if (!existingUser.password) {
-              const randomPassword = Math.random().toString(36).slice(-8)
-              const hashedPassword = await bcrypt.hash(randomPassword, 10)
-              console.log('GitHub signIn - Adding password to existing user')
-              existingUser.password = hashedPassword
-              await existingUser.save()
-              console.log('GitHub signIn - Password added:', { 
-                hasPassword: !!existingUser.password 
-              })
-            }
-            
-            // Update existing user's information
-            await User.findOneAndUpdate(
-              { email: user.email },
-              {
-                name: user.name,
-                image: user.image,
-                updatedAt: new Date()
-              }
-            )
-          }
-          return true
-        } catch (error) {
-          console.error("Error in signIn callback:", error)
-          return false
-        }
+      console.log('signIn callback triggered:', { 
+        provider: account?.provider, 
+        email: user?.email,
+        hasAccount: !!account 
+      })
+      
+      // Với OAuth providers, adapter sẽ tự động tạo user và account
+      // Chỉ cần log để debug
+      if (account?.provider === "github" || account?.provider === "google") {
+        console.log(`${account.provider} OAuth signIn - User will be created by adapter`)
       }
+      
       return true
     },
     async session({ session, token }: any) {
+      console.log('session callback triggered:', { 
+        hasSession: !!session, 
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email 
+      })
+      
       if (session?.user) {
         try {
           await dbConnect()
           const user = await User.findOne({ email: session.user.email })
+          console.log('session callback - Found user:', { 
+            exists: !!user, 
+            email: user?.email,
+            providers: user?.providers 
+          })
+          
           if (user) {
             session.user = {
               ...session.user,
@@ -151,9 +123,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               height: user.height,
               activityLevel: user.activityLevel,
               medicalConditions: user.medicalConditions,
+              providers: user.providers,
               createdAt: user.createdAt,
               updatedAt: user.updatedAt,
             }
+            console.log('session callback - User data loaded:', { 
+              id: session.user.id,
+              providers: session.user.providers 
+            })
           }
         } catch (error) {
           console.error("Error in session callback:", error)

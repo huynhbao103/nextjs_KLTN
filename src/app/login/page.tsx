@@ -60,15 +60,7 @@ export default function Login() {
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-brown-primary dark:text-dark-text">
               Đăng nhập vào tài khoản
             </h2>
-            <p className="mt-2 text-center text-sm text-brown-primary/70 dark:text-dark-text-secondary">
-              Hoặc{' '}
-              <button
-                onClick={() => router.push('/register')}
-                className="font-medium text-green-primary hover:text-green-primary/80"
-              >
-                đăng ký tài khoản mới
-              </button>
-            </p>
+           
           </div>
 
           {registered && (
@@ -152,10 +144,32 @@ export default function Login() {
             </div>
           </form>
 
+         <div className='justify-center gap-4'>
+         <p className=" text-center text-sm text-brown-primary/70 dark:text-dark-text-secondary">
+              Hoặc{' '}
+              <button
+                onClick={() => router.push('/register')}
+                className="font-medium text-green-primary hover:text-green-primary/80"
+              >
+                đăng ký tài khoản mới
+              </button>
+            </p>
+            <p className=" text-center text-sm">
+              <button
+                type="button"
+                onClick={() => router.push('/forgot-password')}
+                className="text-orange-primary hover:underline font-medium"
+              >
+                Quên mật khẩu?
+              </button>
+            </p>
+         </div>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
             </div>
+            
             <div className="relative flex justify-center text-sm">
               <span className="bg-cream-primary dark:bg-dark-bg px-2 text-gray-500 dark:text-gray-400">
                 Hoặc đăng nhập với

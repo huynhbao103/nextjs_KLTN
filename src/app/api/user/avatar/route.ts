@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import User from '@/models/User'
-import connectDB from '@/lib/mongodb'
+import dbConnect from '@/lib/dbConnect'
 import cloudinary from '@/lib/cloudinary'
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    await connectDB()
+    await dbConnect()
 
     const formData = await request.formData()
     const file = formData.get('image') as File
@@ -78,7 +78,7 @@ export async function DELETE() {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    await connectDB()
+    await dbConnect()
 
     // Get current user
     const user = await User.findOne({ email: session.user.email })

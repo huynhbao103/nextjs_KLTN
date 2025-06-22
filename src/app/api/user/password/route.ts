@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import User from '@/models/User'
-import connectDB from '@/lib/mongodb'
+import dbConnect from '@/lib/dbConnect'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Thiếu thông tin', success: false }, { status: 400 })
     }
 
-    await connectDB()
+    await dbConnect()
     const user = await User.findOne({ email: session.user.email })
     if (!user || !user.password) {
       return NextResponse.json({ message: 'Không tìm thấy người dùng hoặc tài khoản không có mật khẩu' }, { status: 404 })

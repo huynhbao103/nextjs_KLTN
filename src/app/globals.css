@@ -15,7 +15,7 @@
 
 @layer components {
   .food-card {
-    @apply bg-white-primary dark:bg-dark-card rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:rotate-1;
+    @apply bg-white-primary dark:bg-dark-card rounded-2xl shadow-lg overflow-hidden;
   }
   
   .btn-primary {

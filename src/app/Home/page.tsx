@@ -19,11 +19,6 @@ export default function home() {
         description: 'Tự động tìm kiếm các quán ăn ngon gần vị trí của bạn'
       },
       {
-        icon: Star,
-        title: 'Đánh Giá Tin Cậy',
-        description: 'Hệ thống đánh giá và review từ cộng đồng người dùng thực tế'
-      },
-      {
         icon: Clock,
         title: 'Tiết Kiệm Thời Gian',
         description: 'Không còn phải suy nghĩ "hôm nay ăn gì" nữa'
@@ -54,8 +49,8 @@ export default function home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-xl md:text-2xl text-brown-primary/80 dark:text-dark-text-secondary mb-12 max-w-3xl mx-auto"
           >
-            Để AI thông minh giúp bạn tìm ra món ăn và quán ăn hoàn hảo 
-            phù hợp với sở thích và vị trí của bạn
+            Để chúng tôi giúp bạn tìm ra món ăn và quán ăn hoàn hảo 
+            phù hợp với bạn
           </motion.p>
           
           <motion.div
@@ -82,7 +77,7 @@ export default function home() {
             Tại Sao Chọn TastyMind?
           </motion.h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
