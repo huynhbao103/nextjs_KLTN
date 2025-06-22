@@ -1,276 +1,462 @@
 'use client';
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Header from '@/components/header/page'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { format, differenceInDays, addDays } from 'date-fns'
-import { vi } from 'date-fns/locale'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { CalendarIcon, UserIcon, PhoneIcon, ScaleIcon, RulerIcon, ActivityIcon, HeartIcon, CameraIcon, Trash2Icon } from 'lucide-react'
-import Image from 'next/image'
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import Header from '@/components/header/page';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { CameraIcon, Trash2Icon, UserIcon } from 'lucide-react';
+import Image from 'next/image';
+import { useNotificationService } from '@/utils/notificationService';
 
-interface User {
-  id: string
-  name?: string | null
-  email?: string | null
-  phone?: string
-  dateOfBirth?: Date
-  gender?: string
-  weight?: number
-  height?: number
-  activityLevel?: string
-  medicalConditions?: string[]
-  lastUpdateDate?: Date
-  image?: string | null
+interface ProfileData {
+  name: string;
+  dateOfBirth: string;
+  gender: string;
+  weight: number;
+  height: number;
+  activityLevel: string;
+  medicalConditions: string[];
 }
 
-export default function ProfilePage() {
-  const { data: session, status, update } = useSession()
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [needsConfirmation, setNeedsConfirmation] = useState(false)
-  const [nextUpdateDate, setNextUpdateDate] = useState<Date | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+interface ProfileErrors {
+  name?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  weight?: string;
+  height?: string;
+  activityLevel?: string;
+  medicalConditions?: string;
+}
 
-  const [formData, setFormData] = useState({
+const activityLevels = [
+  { value: 'sedentary', label: 'Ít vận động', description: 'Ngồi nhiều, ít tập thể dục' },
+  { value: 'light', label: 'Vận động nhẹ', description: 'Tập thể dục 1-3 lần/tuần' },
+  { value: 'moderate', label: 'Vận động vừa', description: 'Tập thể dục 3-5 lần/tuần' },
+  { value: 'active', label: 'Vận động nhiều', description: 'Tập thể dục 6-7 lần/tuần' },
+  { value: 'very_active', label: 'Vận động rất nhiều', description: 'Tập thể dục 2 lần/ngày' }
+];
+
+const medicalConditions = [
+  'Tiểu đường',
+  'Huyết áp cao',
+  'Bệnh tim',
+  'Dị ứng thực phẩm',
+  'Không dung nạp lactose',
+  'Bệnh dạ dày',
+  'Không có'
+];
+
+export default function ProfilePage() {
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+  const notificationService = useNotificationService();
+  
+  const [formData, setFormData] = useState<ProfileData>({
     name: '',
-    email: '',
-    phone: '',
     dateOfBirth: '',
     gender: '',
-    weight: '',
-    height: '',
+    weight: 0,
+    height: 0,
     activityLevel: '',
-    medicalConditions: ''
-  })
+    medicalConditions: []
+  });
 
+  const [errors, setErrors] = useState<Partial<ProfileErrors>>({});
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+
+  // Load user data
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (session?.user) {
-      const user = session.user as User
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        dateOfBirth: user.dateOfBirth ? format(new Date(user.dateOfBirth), 'yyyy-MM-dd') : '',
-        gender: user.gender || '',
-        weight: user.weight?.toString() || '',
-        height: user.height?.toString() || '',
-        activityLevel: user.activityLevel || '',
-        medicalConditions: user.medicalConditions?.join(', ') || ''
-      })
-      setAvatarUrl(user.image || null)
+      router.push('/login');
+    } else if (status === 'authenticated' && session?.user) {
+      // Load fresh data from database
+      const loadUserData = async () => {
+        try {
+          const response = await fetch('/api/user');
+          if (response.ok) {
+            const userData = await response.json();
+            console.log('User data from DB:', userData); // Debug log
+            
+            // Handle dateOfBirth properly - avoid timezone issues
+            let dateOfBirth = '';
+            if (userData.dateOfBirth) {
+              try {
+                // If it's already a string in YYYY-MM-DD format, use it directly
+                if (typeof userData.dateOfBirth === 'string' && userData.dateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                  dateOfBirth = userData.dateOfBirth;
+                  console.log('Using dateOfBirth as string:', dateOfBirth); // Debug log
+                } else {
+                  // If it's a Date object or other format, parse it carefully
+                  const date = new Date(userData.dateOfBirth);
+                  console.log('Parsed date object:', date); // Debug log
+                  if (!isNaN(date.getTime())) {
+                    // Use local date to avoid timezone issues
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    dateOfBirth = `${year}-${month}-${day}`;
+                    console.log('Created dateOfBirth from date object:', dateOfBirth); // Debug log
+                  }
+                }
+              } catch (error) {
+                console.error('Error parsing dateOfBirth:', error);
+              }
+            }
+            
+            console.log('Final dateOfBirth for form:', dateOfBirth); // Debug log
+            
+            setFormData({
+              name: userData.name || '',
+              dateOfBirth: dateOfBirth,
+              gender: userData.gender || '',
+              weight: userData.weight || 0,
+              height: userData.height || 0,
+              activityLevel: userData.activityLevel || '',
+              medicalConditions: userData.medicalConditions || []
+            });
+            setAvatarUrl(userData.image || null);
 
-      if (user.lastUpdateDate) {
-        const lastUpdate = new Date(user.lastUpdateDate)
-        const daysSinceLastUpdate = differenceInDays(new Date(), lastUpdate)
-        const nextUpdate = addDays(lastUpdate, 30)
-        
-        setNeedsConfirmation(daysSinceLastUpdate >= 30)
-        setNextUpdateDate(nextUpdate)
+            // Check if profile needs update
+            if (userData.lastUpdateDate) {
+              const lastUpdate = new Date(userData.lastUpdateDate);
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              setNeedsConfirmation(lastUpdate < thirtyDaysAgo);
+            }
+          } else {
+            console.error('Failed to load user data from DB');
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      };
+
+      loadUserData();
+    }
+  }, [session, status, router]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<ProfileErrors> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Vui lòng nhập tên';
+    }
+
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Vui lòng chọn ngày sinh';
+      } else {
+      const age = new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear();
+      if (age < 13 || age > 100) {
+        newErrors.dateOfBirth = 'Tuổi phải từ 13-100';
       }
     }
-  }, [session, status, router])
+
+    if (!formData.gender) {
+      newErrors.gender = 'Vui lòng chọn giới tính';
+    }
+
+    if (!formData.weight || formData.weight < 20 || formData.weight > 300) {
+      newErrors.weight = 'Cân nặng phải từ 20-300kg';
+    }
+
+    if (!formData.height || formData.height < 100 || formData.height > 250) {
+      newErrors.height = 'Chiều cao phải từ 100-250cm';
+    }
+
+    if (!formData.activityLevel) {
+      newErrors.activityLevel = 'Vui lòng chọn mức độ vận động';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          dateOfBirth: new Date(formData.dateOfBirth),
+          confirmUpdate: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        notificationService.showProfileSaved();
+        setNeedsConfirmation(false);
+        
+        // Update session with the correct dateOfBirth format
+        const updatedUser = {
+          ...session?.user,
+          ...formData,
+          dateOfBirth: formData.dateOfBirth, // Keep the string format
+          lastUpdateDate: new Date()
+        };
+        
+        console.log('Updating session with:', updatedUser); // Debug log
+        
+        await update({
+          ...session,
+          user: updatedUser
+        });
+      } else if (data.needsConfirmation) {
+        setNeedsConfirmation(true);
+        notificationService.showProfileUpdateRequired();
+      } else {
+        notificationService.showProfileSaveError();
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      notificationService.showProfileSaveError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkipUpdate = async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmUpdate: true,
+          skipUpdate: true
+        }),
+      });
+
+      if (response.ok) {
+        notificationService.showProfileSaved();
+        setNeedsConfirmation(false);
+        
+        // Update session
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            lastUpdateDate: new Date()
+          }
+        });
+      } else {
+        notificationService.showProfileSaveError();
+      }
+    } catch (error) {
+      notificationService.showProfileSaveError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: keyof ProfileData, value: any) => {
+    console.log('handleInputChange:', field, value); // Debug log
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleMedicalConditionToggle = (condition: string) => {
+    setFormData(prev => {
+      const currentConditions = [...prev.medicalConditions];
+      
+      if (condition === 'Không có') {
+        // Nếu click vào "Không có"
+        if (currentConditions.includes('Không có')) {
+          // Nếu đã chọn "Không có", bỏ chọn nó
+          return {
+            ...prev,
+            medicalConditions: currentConditions.filter(c => c !== 'Không có')
+          };
+        } else {
+          // Nếu chưa chọn "Không có", chỉ chọn nó và bỏ tất cả bệnh khác
+          return {
+            ...prev,
+            medicalConditions: ['Không có']
+          };
+        }
+      } else {
+        // Nếu click vào bệnh khác
+        if (currentConditions.includes('Không có')) {
+          // Nếu đã chọn "Không có", bỏ nó và chọn bệnh này
+          return {
+            ...prev,
+            medicalConditions: currentConditions.filter(c => c !== 'Không có').concat(condition)
+          };
+        } else {
+          // Nếu chưa chọn "Không có", toggle bệnh này bình thường
+          return {
+      ...prev,
+            medicalConditions: currentConditions.includes(condition)
+              ? currentConditions.filter(c => c !== condition)
+              : [...currentConditions, condition]
+          };
+        }
+      }
+    });
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    // Kiểm tra kích thước file (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Kích thước ảnh không được vượt quá 5MB' })
-      return
+      notificationService.showGenericError('Kích thước ảnh không được vượt quá 5MB');
+      return;
     }
 
-    // Kiểm tra định dạng file
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Vui lòng chọn file ảnh hợp lệ' })
-      return
+      notificationService.showGenericError('Vui lòng chọn file ảnh hợp lệ');
+      return;
     }
 
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('image', file)
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
 
     try {
       const response = await fetch('/api/user/avatar', {
         method: 'POST',
         body: formData,
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setAvatarUrl(data.imageUrl)
-        setMessage({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' })
-        // Cập nhật session để hiển thị ảnh mới
+        setAvatarUrl(data.imageUrl);
+        notificationService.showProfileSaved();
         await update({
           ...session,
           user: {
             ...session?.user,
             image: data.imageUrl
           }
-        })
+        });
       } else {
-        setMessage({ type: 'error', text: data.message || 'Có lỗi xảy ra khi cập nhật ảnh đại diện' })
+        notificationService.showGenericError(data.message || 'Có lỗi xảy ra khi cập nhật ảnh đại diện');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Có lỗi xảy ra khi cập nhật ảnh đại diện' })
+      notificationService.showGenericError('Có lỗi xảy ra khi cập nhật ảnh đại diện');
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleDeleteAvatar = async () => {
-    if (!avatarUrl) return
+    if (!avatarUrl) return;
 
-    setUploading(true)
+    setUploading(true);
     try {
       const response = await fetch('/api/user/avatar', {
         method: 'DELETE',
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setAvatarUrl(null)
-        setMessage({ type: 'success', text: 'Xóa ảnh đại diện thành công!' })
-        // Cập nhật session để hiển thị ảnh mới
+        setAvatarUrl(null);
+        notificationService.showProfileSaved();
         await update({
           ...session,
           user: {
             ...session?.user,
             image: null
           }
-        })
+        });
       } else {
-        setMessage({ type: 'error', text: data.message || 'Có lỗi xảy ra khi xóa ảnh đại diện' })
+        notificationService.showGenericError(data.message || 'Có lỗi xảy ra khi xóa ảnh đại diện');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Có lỗi xảy ra khi xóa ảnh đại diện' })
+      notificationService.showGenericError('Có lỗi xảy ra khi xóa ảnh đại diện');
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const response = await fetch('/api/user', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
-          weight: formData.weight ? parseFloat(formData.weight) : undefined,
-          height: formData.height ? parseFloat(formData.height) : undefined,
-          medicalConditions: formData.medicalConditions
-            ? formData.medicalConditions.split(',').map(condition => condition.trim())
-            : [],
-          confirmUpdate: true
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' })
-        setNeedsConfirmation(false)
-        setNextUpdateDate(addDays(new Date(), 30))
-      } else if (data.needsConfirmation) {
-        setNeedsConfirmation(true)
-        setMessage({ type: 'error', text: data.message })
-      } else {
-        setMessage({ type: 'error', text: data.message || 'Có lỗi xảy ra khi cập nhật thông tin' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Có lỗi xảy ra khi cập nhật thông tin' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSkipUpdate = async () => {
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const response = await fetch('/api/user', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          confirmUpdate: true,
-          skipUpdate: true
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Đã xác nhận không cần cập nhật thông tin!' })
-        setNeedsConfirmation(false)
-        setNextUpdateDate(addDays(new Date(), 30))
-      } else {
-        setMessage({ type: 'error', text: data.message || 'Có lỗi xảy ra' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Có lỗi xảy ra' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+  };
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-cream-primary dark:bg-dark-bg">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-primary mx-auto mb-4"></div>
+            <p className="text-brown-primary dark:text-dark-text">Đang tải...</p>
+          </div>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-cream-primary dark:bg-dark-bg">
     <Header />
-    <div className="min-h-screen bg-background py-12">
-      <div className="container mx-auto px-4">
-        <Card className="max-w-4xl mx-auto border-border bg-card shadow-lg dark:bg-dark-card dark:border-neutral-700 dark:shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-2 dark:text-white">
-              <UserIcon className="h-6 w-6 text-primary dark:text-white" />
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Update Confirmation Alert */}
+          {needsConfirmation && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <Alert className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800">
+                <AlertDescription className="text-yellow-800 dark:text-yellow-100">
+                  Thông tin của bạn đã quá 30 ngày chưa được xác nhận. Vui lòng xác nhận xem bạn có cần cập nhật thông tin không.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900/20">
+              <CardHeader className="text-center bg-gradient-to-r from-orange-50 to-orange-100 dark:from-gray-800 dark:to-gray-700 rounded-t-lg border-b border-gray-200 dark:border-gray-700">
+                <CardTitle className="text-2xl font-bold text-brown-primary dark:text-orange-400">
               Hồ sơ cá nhân
             </CardTitle>
+                <p className="text-brown-primary/70 dark:text-orange-300/80">
+                  Cập nhật thông tin để có gợi ý chính xác hơn
+                </p>
           </CardHeader>
-          <CardContent>
+              
+              <CardContent className="p-6 bg-white dark:bg-gray-900">
             {/* Avatar Section */}
             <div className="flex flex-col items-center mb-8">
               <div className="relative w-32 h-32 mb-4">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary dark:border-orange-primary">
+                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-orange-500 dark:border-orange-400">
                   {avatarUrl ? (
                     <Image
                       src={avatarUrl}
@@ -280,15 +466,15 @@ export default function ProfilePage() {
                       className="object-cover w-full h-full"
                     />
                   ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <UserIcon className="w-16 h-16 text-muted-foreground" />
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <UserIcon className="w-16 h-16 text-gray-500 dark:text-gray-400" />
                     </div>
                   )}
                 </div>
                 <div className="absolute bottom-0 right-0 flex gap-2">
                   <label
                     htmlFor="avatar-upload"
-                    className="bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary/90 transition-colors dark:bg-orange-primary dark:hover:bg-orange-primary/90"
+                        className="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full cursor-pointer transition-colors"
                   >
                     <CameraIcon className="w-5 h-5" />
                     <input
@@ -304,198 +490,141 @@ export default function ProfilePage() {
                     <button
                       onClick={handleDeleteAvatar}
                       disabled={uploading}
-                      className="bg-red-500 text-white p-2 rounded-full cursor-pointer hover:bg-red-600 transition-colors"
+                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full cursor-pointer transition-colors"
                     >
                       <Trash2Icon className="w-5 h-5" />
                     </button>
                   )}
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground dark:text-white">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                 {uploading ? 'Đang xử lý...' : avatarUrl ? 'Nhấn vào biểu tượng camera để thay đổi ảnh đại diện' : 'Nhấn vào biểu tượng camera để thêm ảnh đại diện'}
               </p>
             </div>
 
-            {needsConfirmation && (
-              <Alert className="mb-6 bg-yellow-50/50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 dark:text-white">
-                <AlertDescription className="text-yellow-800 dark:text-yellow-100 dark:text-white">
-                  Thông tin của bạn đã quá 30 ngày chưa được xác nhận. Vui lòng xác nhận xem bạn có cần cập nhật thông tin không.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {message && (
-              <Alert className={`mb-6 ${
-                message.type === 'success' 
-                  ? 'bg-green-50/50 dark:bg-green-900/30 border-green-200 dark:border-green-800' 
-                  : 'bg-red-50/50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
-              }`}>
-                <AlertDescription className={
-                  message.type === 'success'
-                    ? 'text-green-800 dark:text-green-100'
-                    : 'text-red-800 dark:text-red-100'
-                }>
-                  {message.text}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-foreground font-medium dark:text-white">Họ và tên</Label>
-                  <div className="relative">
-                    <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
+                      <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-200">Họ và tên *</Label>
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                    />
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        placeholder="Nhập họ và tên"
+                        className={`${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-orange-500 dark:focus:border-orange-400`}
+                      />
+                      {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+                </div>
+
+                <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700 dark:text-gray-200">Ngày sinh *</Label>
+                      <DatePicker
+                        value={formData.dateOfBirth}
+                        onChange={(value) => handleInputChange('dateOfBirth', value)}
+                        error={!!errors.dateOfBirth}
+                      />
+                      {errors.dateOfBirth && <p className="text-red-500 text-sm">{errors.dateOfBirth}</p>}
                   </div>
                 </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground font-medium dark:text-white">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    disabled
-                    className="bg-muted/50 text-muted-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                  />
+                      <Label htmlFor="gender" className="text-sm font-medium text-gray-700 dark:text-gray-200">Giới tính *</Label>
+                      <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                        <SelectTrigger className={`${errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-400`}>
+                          <SelectValue placeholder="Chọn giới tính" className="text-gray-900 dark:text-white [&[data-placeholder]]:text-gray-500 dark:[&[data-placeholder]]:text-gray-400" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-gray-800 dark:border-gray-600">
+                          <SelectItem value="male" className="text-gray-900 dark:text-white hover:bg-orange-50 dark:hover:bg-orange-900/20">Nam</SelectItem>
+                          <SelectItem value="female" className="text-gray-900 dark:text-white hover:bg-orange-50 dark:hover:bg-orange-900/20">Nữ</SelectItem>
+                          <SelectItem value="other" className="text-gray-900 dark:text-white hover:bg-orange-50 dark:hover:bg-orange-900/20">Khác</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-foreground font-medium dark:text-white">Số điện thoại</Label>
-                  <div className="relative">
-                    <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth" className="text-foreground font-medium dark:text-white">Ngày sinh</Label>
-                  <div className="relative">
-                    <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      required
-                      className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gender" className="text-foreground font-medium dark:text-white">Giới tính</Label>
-                  <Select
-                    value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                  >
-                    <SelectTrigger className=" bg-white  text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700">
-                      <SelectValue placeholder="Chọn giới tính" />
+                      <Label htmlFor="activityLevel" className="text-sm font-medium text-gray-700 dark:text-gray-200">Mức độ vận động *</Label>
+                      <Select value={formData.activityLevel} onValueChange={(value) => handleInputChange('activityLevel', value)}>
+                        <SelectTrigger className={`${errors.activityLevel ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-400`}>
+                          <SelectValue placeholder="Chọn mức độ vận động" className="text-gray-900 dark:text-white [&[data-placeholder]]:text-gray-500 dark:[&[data-placeholder]]:text-gray-400" />
                     </SelectTrigger>
-                    <SelectContent className="dark:bg-[#23272f] bg-white dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400">
-                      <SelectItem value="male">Nam</SelectItem>
-                      <SelectItem value="female">Nữ</SelectItem>
-                      <SelectItem value="other">Khác</SelectItem>
+                        <SelectContent className="bg-white dark:bg-gray-800 dark:border-gray-600">
+                          {activityLevels.map((level) => (
+                            <SelectItem key={level.value} value={level.value} className="text-gray-900 dark:text-white hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                              <div>
+                                <div className="font-medium">{level.label}</div>
+                                {/* <div className="text-xs text-gray-500 dark:text-gray-400">{level.description}</div> */}
+                              </div>
+                            </SelectItem>
+                          ))}
                     </SelectContent>
                   </Select>
+                      {errors.activityLevel && <p className="text-red-500 text-sm">{errors.activityLevel}</p>}
+                    </div>
                 </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="weight" className="text-foreground font-medium dark:text-white">Cân nặng (kg)</Label>
-                  <div className="relative">
-                    <ScaleIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
+                      <Label htmlFor="weight" className="text-sm font-medium text-gray-700 dark:text-gray-200">Cân nặng (kg) *</Label>
                     <Input
                       id="weight"
                       type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.weight}
-                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                      required
-                      className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                    />
-                  </div>
+                        value={formData.weight || ''}
+                        onChange={(e) => handleInputChange('weight', parseFloat(e.target.value) || 0)}
+                        placeholder="Nhập cân nặng"
+                        className={`${errors.weight ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-orange-500 dark:focus:border-orange-400`}
+                      />
+                      {errors.weight && <p className="text-red-500 text-sm">{errors.weight}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="height" className="text-foreground font-medium dark:text-white">Chiều cao (cm)</Label>
-                  <div className="relative">
-                    <RulerIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
+                      <Label htmlFor="height" className="text-sm font-medium text-gray-700 dark:text-gray-200">Chiều cao (cm) *</Label>
                     <Input
                       id="height"
                       type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.height}
-                      onChange={(e) => setFormData({ ...formData, height: e.target.value })}
-                      required
-                      className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                    />
-                  </div>
+                        value={formData.height || ''}
+                        onChange={(e) => handleInputChange('height', parseFloat(e.target.value) || 0)}
+                        placeholder="Nhập chiều cao"
+                        className={`${errors.height ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-orange-500 dark:focus:border-orange-400`}
+                      />
+                      {errors.height && <p className="text-red-500 text-sm">{errors.height}</p>}
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="activityLevel" className="text-foreground font-medium dark:text-white">Mức độ hoạt động</Label>
-                  <div className="relative">
-                    <ActivityIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
-                    <Select
-                      value={formData.activityLevel}
-                      onValueChange={(value) => setFormData({ ...formData, activityLevel: value })}
-                    >
-                      <SelectTrigger className="pl-10 bg-white text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700">
-                        <SelectValue placeholder="Chọn mức độ hoạt động" />
-                      </SelectTrigger>
-                      <SelectContent className="dark:bg-[#23272f] bg-white dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400">
-                        <SelectItem value="sedentary">Ít vận động (ngồi nhiều)</SelectItem>
-                        <SelectItem value="light">Vận động nhẹ (1-3 lần/tuần)</SelectItem>
-                        <SelectItem value="moderate">Vận động vừa (3-5 lần/tuần)</SelectItem>
-                        <SelectItem value="active">Vận động nhiều (6-7 lần/tuần)</SelectItem>
-                        <SelectItem value="very_active">Vận động rất nhiều (2 lần/ngày)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                  {/* Medical Conditions */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Bệnh lý (có thể chọn nhiều)</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {medicalConditions.map((condition) => (
+                        <Button
+                          key={condition}
+                          type="button"
+                          variant={formData.medicalConditions.includes(condition) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleMedicalConditionToggle(condition)}
+                          className={`justify-start transition-all duration-200 ${
+                            formData.medicalConditions.includes(condition)
+                              ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500'
+                              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-300 dark:hover:border-orange-600'
+                          }`}
+                        >
+                          {condition}
+                        </Button>
+                      ))}
+                    </div>
               </div>
 
-              <Separator className="my-6 bg-border" />
-
-              <div className="space-y-2">
-                <Label htmlFor="medicalConditions" className="text-foreground font-medium dark:text-white">Tình trạng sức khỏe</Label>
-                <div className="relative">
-                  <HeartIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white" />
-                  <Input
-                    id="medicalConditions"
-                    value={formData.medicalConditions}
-                    onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
-                    placeholder="Ví dụ: Tiểu đường, Huyết áp cao"
-                    className="pl-10 bg-background text-foreground border-input dark:bg-[#23272f] dark:text-neutral-100 dark:border-neutral-700 dark:placeholder:text-neutral-400"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground mt-1 dark:text-white  ">
-                  Nhập các tình trạng sức khỏe của bạn, phân cách bằng dấu phẩy
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-4 pt-4">
+                  {/* Action Buttons */}
+                  <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                 {needsConfirmation && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleSkipUpdate}
                     disabled={loading}
-                    className="border-border hover:bg-muted text-foreground dark:bg-primary/90 dark:text-white"
+                        className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     Không cần cập nhật
                   </Button>
@@ -503,16 +632,17 @@ export default function ProfilePage() {
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="btn-primary text-lg dark:bg-orange-primary dark:hover:bg-orange-primary/90"
+                      className="ml-auto bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600 transition-all duration-200"
                 >
-                  {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
+                      {loading ? 'Đang lưu...' : 'Cập nhật thông tin'}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
+          </motion.div>
       </div>
+      </main>
     </div>
-    </>
-  )
+  );
 } 

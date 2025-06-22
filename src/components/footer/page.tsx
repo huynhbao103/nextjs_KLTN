@@ -1,6 +1,9 @@
 import React from 'react'
 import { ChefHat } from 'lucide-react'
 import { motion } from 'framer-motion'
+import logo from '@/public/images/logo.png'
+import Link from 'next/link'
+import Image from 'next/image'
 
 export default function footer() {
   return (
@@ -25,27 +28,43 @@ export default function footer() {
           >
             Để tìm kiếm những trải nghiệm ẩm thực tuyệt vời
           </motion.p>
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="bg-white-primary text-brown-primary  px-12 py-6 rounded-full text-xl font-bold hover:shadow-2xl transition-all duration-300"
+          >
+            <Link 
+              href="/experience"
+              className="inline-block bg-white-primary text-brown-primary px-12 py-6 rounded-full text-xl font-bold hover:shadow-2xl transition-all duration-300"
           >
             Bắt Đầu Miễn Phí
-          </motion.button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 
       <footer className="relative z-20 px-6 py-12 bg-brown-primary dark:bg-dark-card text-white-primary">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-8">
-            <div className="bg-orange-primary p-3 rounded-full">
-              <ChefHat className="w-8 h-8" />
-            </div>
-            <span className="text-2xl font-bold">FoodAI</span>
+          <Link 
+              href="/" 
+              className="flex items-center focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg transition-all duration-200"
+              aria-label="Go to homepage"
+            >
+              <div className="relative w-20 h-12 sm:w-24 sm:h-16 flex items-center justify-center">
+                <Image 
+                  src={logo} 
+                  alt="FoodAI Logo" 
+                  fill
+                  className="object-contain"
+                  priority
+                  sizes="(max-width: 640px) 80px, 96px"
+                />
+              </div>
+            </Link>
           </div>
           <p className="text-white-primary/70 mb-8">
             Khám phá thế giới ẩm thực

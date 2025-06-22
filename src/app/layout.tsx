@@ -3,12 +3,13 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from '@/context/ThemeContext'
+import { NotificationProvider } from '@/components/ui/notification'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI Food Recommendation - Gợi ý món ăn thông minh',
-  description: 'Sử dụng AI để gợi ý món ăn và quán ăn phù hợp với sở thích của bạn',
+  title: 'TastyMind - AI Food Recommendation',
+  description: 'Ứng dụng gợi ý món ăn thông minh với AI',
 }
 
 export default function RootLayout({
@@ -19,11 +20,17 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <ThemeProvider>
-          <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
-            {children}
-          </SessionProvider>
-        </ThemeProvider>
+        <SessionProvider 
+          refetchInterval={0} 
+          refetchOnWindowFocus={false}
+          refetchWhenOffline={false}
+        >
+          <ThemeProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )
