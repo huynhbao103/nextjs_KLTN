@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Gọi external API
-    const apiKey = process.env.WEATHER_API_KEY || "b6bd7b2942f4b524dd696aaa422d707b";
+    const apiKey = process.env.WEATHER_API_KEY;
     
     if (!apiKey) {
       console.error('Weather API key is not configured');
