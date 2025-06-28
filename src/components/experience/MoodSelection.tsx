@@ -73,7 +73,7 @@ export function MoodSelection({ onMoodSelected, onBack }: MoodSelectionProps) {
                 onClick={() => handleMoodSelect(mood.id)}
               >
                 <span className="text-2xl">{mood.emoji}</span>
-                <span className="text-sm font-medium">{mood.label}</span>
+                <span className="text-sm font-medium text-brown-primary dark:text-dark-text">{mood.label}</span>
               </Button>
             </motion.div>
           ))}
@@ -91,16 +91,16 @@ export function MoodSelection({ onMoodSelected, onBack }: MoodSelectionProps) {
           </motion.div>
         )}
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-4 gap-4">
           {onBack && (
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" className='w-1/2 bg-orange-primary/10 text-brown-primary dark:text-dark-text hover:bg-orange-primary/20' onClick={onBack}>
               Quay lại
             </Button>
           )}
           <Button 
             onClick={handleContinue}
             disabled={!selectedMood}
-            className="ml-auto"
+            className="ml-auto bg-orange-primary text-white hover:bg-orange-primary/80"
           >
             Tiếp tục
           </Button>

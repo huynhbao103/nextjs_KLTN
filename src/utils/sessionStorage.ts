@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import { SessionWeatherData, WeatherData } from '@/types/weather';
 
 // Types cho session data
 export interface SessionData {
   mood?: string;
-  weather?: any;
-  location?: any;
+  weather?: SessionWeatherData;
   formProgress?: number;
   profileComplete?: boolean;
   lastUpdated?: string;
@@ -14,6 +14,30 @@ export interface SessionData {
 // Constants
 const SESSION_TTL = 30 * 60 * 1000; // 30 phút
 const PROFILE_UPDATE_INTERVAL = 30 * 24 * 60 * 60 * 1000; // 30 ngày
+
+// Utility function để chuyển đổi WeatherData thành SessionWeatherData
+export function convertToSessionWeatherData(weatherData: WeatherData): SessionWeatherData {
+  return {
+    current: {
+      location: {
+        name: weatherData.location.name || '',
+        country: weatherData.location.country || '',
+        region: weatherData.location.region || ''
+      },
+      lat: weatherData.location.lat || 0,
+      lon: weatherData.location.lon || 0,
+      temp_c: weatherData.current.temp_c || 0,
+      temp_f: weatherData.current.temp_f || 0,
+      feelslike_c: weatherData.current.feelslike_c || 0,
+      feelslike_f: weatherData.current.feelslike_f || 0,
+      condition: {
+        text: weatherData.current.condition?.text || 'Unknown',
+        icon: weatherData.current.condition?.icon || ''
+      },
+      last_updated: weatherData.current.last_updated || new Date().toISOString()
+    }
+  };
+}
 
 // Utility functions cho sessionStorage
 export const sessionStore = {
@@ -34,37 +58,24 @@ export const sessionStore = {
     return window.sessionStorage.getItem('currentMood');
   },
 
-  // Weather data
-  setWeather: (weather: any) => {
+  // Weather data - chỉ lưu thông tin cần thiết
+  setWeather: (weather: WeatherData) => {
     const expiresAt = new Date(Date.now() + SESSION_TTL).toISOString();
-    window.sessionStorage.setItem('weatherData', JSON.stringify(weather));
+    
+    // Chuyển đổi sang format đơn giản
+    const simplifiedWeather = convertToSessionWeatherData(weather);
+    
+    window.sessionStorage.setItem('weatherData', JSON.stringify(simplifiedWeather));
     window.sessionStorage.setItem('expiresAt', expiresAt);
   },
   
-  getWeather: (): any => {
+  getWeather: (): SessionWeatherData | null => {
     const expiresAt = window.sessionStorage.getItem('expiresAt');
     if (expiresAt && new Date(expiresAt) < new Date()) {
       sessionStore.clearAll();
       return null;
     }
     const data = window.sessionStorage.getItem('weatherData');
-    return data ? JSON.parse(data) : null;
-  },
-
-  // Location data
-  setLocation: (location: any) => {
-    const expiresAt = new Date(Date.now() + SESSION_TTL).toISOString();
-    window.sessionStorage.setItem('locationData', JSON.stringify(location));
-    window.sessionStorage.setItem('expiresAt', expiresAt);
-  },
-  
-  getLocation: (): any => {
-    const expiresAt = window.sessionStorage.getItem('expiresAt');
-    if (expiresAt && new Date(expiresAt) < new Date()) {
-      sessionStore.clearAll();
-      return null;
-    }
-    const data = window.sessionStorage.getItem('locationData');
     return data ? JSON.parse(data) : null;
   },
 
@@ -111,8 +122,7 @@ export const sessionStore = {
 
     return {
       mood: sessionStore.getMood() || undefined,
-      weather: sessionStore.getWeather(),
-      location: sessionStore.getLocation(),
+      weather: sessionStore.getWeather() || undefined,
       formProgress: sessionStore.getFormProgress(),
       profileComplete: sessionStore.getProfileComplete(),
       lastUpdated: window.sessionStorage.getItem('lastUpdated') || undefined,
@@ -124,11 +134,17 @@ export const sessionStore = {
   clearAll: () => {
     window.sessionStorage.removeItem('currentMood');
     window.sessionStorage.removeItem('weatherData');
-    window.sessionStorage.removeItem('locationData');
+    window.sessionStorage.removeItem('locationData'); // Clear locationData cũ
     window.sessionStorage.removeItem('formStep');
     window.sessionStorage.removeItem('profileComplete');
     window.sessionStorage.removeItem('lastUpdated');
     window.sessionStorage.removeItem('expiresAt');
+  },
+
+  // Clear old session data (migration)
+  clearOldData: () => {
+    // Clear locationData cũ vì giờ chỉ dùng weatherData
+    window.sessionStorage.removeItem('locationData');
   },
 
   // Check if session has data
@@ -137,7 +153,7 @@ export const sessionStore = {
       sessionStore.clearAll();
       return false;
     }
-    return !!(sessionStore.getMood() || sessionStore.getWeather() || sessionStore.getLocation());
+    return !!(sessionStore.getMood() || sessionStore.getWeather());
   }
 };
 
@@ -231,20 +247,12 @@ export const useSessionStorage = () => {
       return sessionStore.getMood();
     },
 
-    setWeather: (weather: any) => {
+    setWeather: (weather: WeatherData) => {
       sessionStore.setWeather(weather);
     },
 
     getWeather: () => {
       return sessionStore.getWeather();
-    },
-
-    setLocation: (location: any) => {
-      sessionStore.setLocation(location);
-    },
-
-    getLocation: () => {
-      return sessionStore.getLocation();
     },
 
     setFormProgress: (step: number) => {
@@ -269,6 +277,10 @@ export const useSessionStorage = () => {
 
     clearAll: () => {
       sessionStore.clearAll();
+    },
+
+    clearOldData: () => {
+      sessionStore.clearOldData();
     },
 
     hasData: () => {

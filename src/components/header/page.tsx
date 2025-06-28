@@ -15,7 +15,7 @@ const mobileMenuVariants = {
     opacity: 0,
     height: 0,
     transition: {
-      duration: 0.3,
+      duration: 1,
       ease: "easeInOut"
     }
   },
@@ -23,7 +23,7 @@ const mobileMenuVariants = {
     opacity: 1,
     height: "auto",
     transition: {
-      duration: 0.3,
+      duration: 1,
       ease: "easeInOut"
     }
   }
@@ -55,8 +55,36 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  // Scroll handling for header visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      
+      // Show header when scrolling to top
+      if (currentScrollY < 100) {
+        setIsHeaderVisible(true)
+        setLastScrollY(currentScrollY)
+        return
+      }
+
+      // Hide header when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsHeaderVisible(false)
+      } else if (currentScrollY < lastScrollY) {
+        setIsHeaderVisible(true)
+      }
+      
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [lastScrollY])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -116,11 +144,20 @@ export default function Header() {
   const isLoading = status === 'loading'
 
   return (
-    <header 
-      className="bg-white-primary dark:bg-dark-card shadow-md transition-colors duration-300 sticky top-0 z-50"
+    <motion.header 
+      className="bg-white-primary dark:bg-dark-card shadow-md transition-colors duration-300 fixed top-0 left-0 right-0 z-50"
       onKeyDown={handleKeyDown}
       role="banner"
       aria-label="Main navigation"
+      initial={{ y: 0 }}
+      animate={{ 
+        y: isHeaderVisible ? 0 : -100,
+        opacity: isHeaderVisible ? 1 : 0
+      }}
+      transition={{ 
+        duration: 0.3,
+        ease: "easeInOut"
+      }}
     >
       <div className="px-4 sm:px-6 py-3 sm:py-4">
         <nav className="max-w-7xl mx-auto flex items-center justify-between" role="navigation">
@@ -255,7 +292,7 @@ export default function Header() {
                       </Link>
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:bg-gray-100 dark:focus:bg-dark-bg"
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-100"
                         role="menuitem"
                       >
                         <LogOut className="w-4 h-4" />
@@ -410,6 +447,6 @@ export default function Header() {
           )}
         </AnimatePresence>
       </div>
-    </header>
+    </motion.header>
   )
 }

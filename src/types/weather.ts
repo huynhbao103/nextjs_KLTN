@@ -5,6 +5,35 @@ export interface WeatherData {
   forecast?: ForecastData[];
 }
 
+// Interface duy nhất cho session weather data - chỉ chứa thời tiết hiện tại
+export interface SessionWeatherData {
+  // Thời tiết hiện tại
+  current: {
+    // Thông tin vị trí
+    location: {
+      name: string;
+      country: string;
+      region: string;
+    };
+    // Tọa độ
+    lat: number;
+    lon: number;
+    // Nhiệt độ
+    temp_c: number;
+    temp_f: number;
+    // Cảm giác
+    feelslike_c: number;
+    feelslike_f: number;
+    // Điều kiện thời tiết
+    condition: {
+      text: string;
+      icon: string;
+    };
+    // Thời gian cập nhật
+    last_updated: string;
+  };
+}
+
 export interface LocationData {
   name: string;
   country: string;

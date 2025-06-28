@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useSessionStorage } from '@/utils/sessionStorage';
+import { SearchIcon, XIcon } from 'lucide-react';
 
 interface ProfileData {
   name: string;
@@ -53,6 +54,20 @@ const medicalConditions = [
   'Dị ứng thực phẩm',
   'Không dung nạp lactose',
   'Bệnh dạ dày',
+  'Bệnh thận',
+  'Bệnh gan',
+  'Bệnh phổi',
+  'Bệnh xương khớp',
+  'Bệnh thần kinh',
+  'Bệnh mắt',
+  'Bệnh da',
+  'Bệnh răng miệng',
+  'Bệnh tai mũi họng',
+  'Bệnh nội tiết',
+  'Bệnh tiêu hóa',
+  'Bệnh hô hấp',
+  'Bệnh tuần hoàn',
+  'Bệnh miễn dịch',
   'Không có'
 ];
 
@@ -70,6 +85,8 @@ export function ProfileSetupForm({ onComplete, onBack, initialData, isUpdate = f
   const [errors, setErrors] = useState<Partial<ProfileErrors>>({});
   const [loading, setLoading] = useState(false);
   const { setProfileComplete } = useSessionStorage();
+  const [medicalSearchTerm, setMedicalSearchTerm] = useState('');
+  const [showMedicalDropdown, setShowMedicalDropdown] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<ProfileErrors> = {};
@@ -157,6 +174,10 @@ export function ProfileSetupForm({ onComplete, onBack, initialData, isUpdate = f
     }
   };
 
+  const filteredMedicalConditions = medicalConditions.filter(condition =>
+    condition.toLowerCase().includes(medicalSearchTerm.toLowerCase())
+  );
+
   const handleMedicalConditionToggle = (condition: string) => {
     setFormData(prev => {
       const currentConditions = [...prev.medicalConditions];
@@ -195,6 +216,15 @@ export function ProfileSetupForm({ onComplete, onBack, initialData, isUpdate = f
         }
       }
     });
+    setMedicalSearchTerm('');
+    setShowMedicalDropdown(false);
+  };
+
+  const removeMedicalCondition = (condition: string) => {
+    setFormData(prev => ({
+      ...prev,
+      medicalConditions: prev.medicalConditions.filter(c => c !== condition)
+    }));
   };
 
   return (
@@ -306,24 +336,79 @@ export function ProfileSetupForm({ onComplete, onBack, initialData, isUpdate = f
           {/* Medical Conditions */}
           <div className="space-y-3">
             <Label className='text-sm font-medium text-gray-700 dark:text-gray-200'>Bệnh lý (có thể chọn nhiều)</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {medicalConditions.map((condition) => (
-                <Button
-                  key={condition}
-                  type="button"
-                  variant={formData.medicalConditions.includes(condition) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleMedicalConditionToggle(condition)}
-                  className={`justify-start transition-all duration-200 ${
-                    formData.medicalConditions.includes(condition)
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-300 dark:hover:border-orange-600'
-                  }`}
-                >
-                  {condition}
-                </Button>
-              ))}
+            
+            {/* Selected Conditions Tags */}
+            {formData.medicalConditions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {formData.medicalConditions.map((condition) => (
+                  <div
+                    key={condition}
+                    className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm"
+                  >
+                    <span>{condition}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeMedicalCondition(condition)}
+                      className="ml-1 hover:bg-orange-200 dark:hover:bg-orange-800/50 rounded-full p-0.5"
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Search and Dropdown */}
+            <div className="relative">
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Tìm kiếm bệnh lý..."
+                  value={medicalSearchTerm}
+                  onChange={(e) => {
+                    setMedicalSearchTerm(e.target.value);
+                    setShowMedicalDropdown(true);
+                  }}
+                  onFocus={() => setShowMedicalDropdown(true)}
+                  className="pl-10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 border-gray-300 dark:border-gray-600 focus:border-orange-500 dark:focus:border-orange-400"
+                />
+              </div>
+
+              {/* Dropdown */}
+              {showMedicalDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredMedicalConditions.length > 0 ? (
+                    filteredMedicalConditions.map((condition) => (
+                      <button
+                        key={condition}
+                        type="button"
+                        onClick={() => handleMedicalConditionToggle(condition)}
+                        className={`w-full text-left px-4 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors ${
+                          formData.medicalConditions.includes(condition)
+                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200'
+                            : 'text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {condition}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                      Không tìm thấy bệnh lý phù hợp
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Click outside to close dropdown */}
+            {showMedicalDropdown && (
+              <div
+                className="fixed inset-0 z-0"
+                onClick={() => setShowMedicalDropdown(false)}
+              />
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -348,6 +433,7 @@ export function ProfileSetupForm({ onComplete, onBack, initialData, isUpdate = f
           </div>
         </form>
       </CardContent>
+      
     </Card>
   );
 } 
