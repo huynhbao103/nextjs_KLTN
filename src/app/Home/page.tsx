@@ -3,10 +3,13 @@
 import React, { useState } from 'react'
 import { motion} from 'framer-motion'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { ChefHat, Brain, MapPin, Star, Clock, Users } from 'lucide-react'
 
 export default function home() {
     const [isHovering, setIsHovering] = useState(false);
+    const { data: session, status } = useSession();
+    
     const features = [
       {
         icon: Brain,
@@ -59,7 +62,10 @@ export default function home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-6"
           >
-            <Link href="/experience" className="btn-primary text-lg dark:bg-orange-primary dark:hover:bg-orange-primary/90">
+            <Link 
+              href={status === 'authenticated' ? "/experience" : "/login"} 
+              className="btn-primary text-lg dark:bg-orange-primary dark:hover:bg-orange-primary/90"
+            >
               Bắt Đầu Khám Phá
             </Link>
           </motion.div>

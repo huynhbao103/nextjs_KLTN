@@ -10,7 +10,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
-import { Loader2, MapPin, Cloud, Heart, User, Clock } from 'lucide-react';
+import { Loader2, MapPin, Cloud, Heart, User, Clock, Thermometer } from 'lucide-react';
 import { MoodSelection } from '@/components/experience/MoodSelection';
 import { ProfileSetupForm } from '@/components/experience/ProfileSetupForm';
 import { ProfileUpdatePrompt } from '@/components/experience/ProfileUpdatePrompt';
@@ -26,10 +26,8 @@ export default function Experience() {
   
   const { 
     setWeather, 
-    setLocation, 
     getMood, 
     getWeather, 
-    getLocation, 
     hasData, 
     isExpired, 
     getRemainingTime,
@@ -105,28 +103,22 @@ export default function Experience() {
   // Handle weather data
   useEffect(() => {
     if (weatherRequested && position?.coords.latitude && position?.coords.longitude) {
-      setWeather(null); // reset weather trước khi lấy mới
-      setLocation(null);
       // Gọi API lấy thời tiết
       // (useWeather sẽ tự động fetch khi lat/lon thay đổi, nên ta chỉ cần set state)
     }
-  }, [weatherRequested, position, setWeather, setLocation]);
+  }, [weatherRequested, position]);
 
   // Khi có weatherData và đã request, mới chuyển sang complete
   useEffect(() => {
     if (weatherRequested && weatherData && currentStep === 'weather') {
       setWeather(weatherData);
-      setLocation({
-        lat: position?.coords.latitude,
-        lon: position?.coords.longitude,
-        name: weatherData.location.name
-      });
+      // Không cần setLocation vì weatherData và locationData giờ giống nhau
       setCurrentStep('complete');
       notificationService.showWeatherLoaded(weatherData.location.name);
       notificationService.showRecommendationReady();
       setWeatherRequested(false); // reset lại để lần sau quay lại phải xác nhận lại
     }
-  }, [weatherRequested, weatherData, position, currentStep, setWeather, setLocation, notificationService]);
+  }, [weatherRequested, weatherData, currentStep, setWeather, notificationService]);
 
   // Handle weather error
   useEffect(() => {
@@ -250,8 +242,8 @@ export default function Experience() {
               <Card className="food-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <User className="w-6 h-6 text-orange-primary" />
-                    <span>{currentStep === 'profile' ? 'Thiết lập hồ sơ' : 'Cập nhật hồ sơ'}</span>
+                    <User className="w-6 h-6 text-orange-primary dark:text-dark-text" />
+                    <span className='text-brown-primary dark:text-dark-text'>{currentStep === 'profile' ? 'Thiết lập hồ sơ' : 'Cập nhật hồ sơ'}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -277,8 +269,8 @@ export default function Experience() {
               <Card className="food-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Heart className="w-6 h-6 text-orange-primary" />
-                    <span>Chọn tâm trạng</span>
+                    <Heart className="w-6 h-6 text-orange-primary dark:text-dark-text" />
+                    <span className='text-brown-primary dark:text-dark-text'>Chọn tâm trạng</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -289,8 +281,8 @@ export default function Experience() {
                       onClick={handleBackToProfile}
                       className="flex items-center space-x-2"
                     >
-                      <User className="w-4 h-4" />
-                      <span>Quay lại</span>
+                      <User className="w-4 h-4 text-brown-primary dark:text-dark-text" />
+                      <span className='text-brown-primary dark:text-dark-text'>Quay lại</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -302,8 +294,8 @@ export default function Experience() {
               <Card className="food-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Cloud className="w-6 h-6 text-orange-primary" />
-                    <span>Thông tin thời tiết</span>
+                    <Cloud className="w-6 h-6 text-orange-primary dark:text-dark-text" />
+                    <span className='text-brown-primary dark:text-dark-text'>Thông tin thời tiết</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -341,6 +333,32 @@ export default function Experience() {
                               Thử lại
                             </Button>
                           </div>
+                        ) : getWeather() ? (
+                          <div className="space-y-4">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                              <div className="flex items-center justify-center gap-3 mb-2">
+                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                  {Math.round(getWeather()?.current?.temp_c || 0)}°C
+                                </span>
+                                {getWeather()?.current?.condition?.icon && (
+                                  <img 
+                                    src={getWeather()?.current.condition.icon} 
+                                    alt={getWeather()?.current.condition.text}
+                                    className="w-12 h-12"
+                                  />
+                                )}
+                              </div>
+                              <p className="text-center text-blue-800 dark:text-blue-200 font-medium">
+                                {getWeather()?.current?.condition?.text}
+                              </p>
+                              <p className="text-center text-sm text-blue-600 dark:text-blue-300">
+                                Cảm giác như {Math.round(getWeather()?.current?.feelslike_c || 0)}°C
+                              </p>
+                            </div>
+                            <p className="text-green-600 dark:text-green-400 font-medium">
+                              ✓ Đã lấy thông tin thời tiết thành công!
+                            </p>
+                          </div>
                         ) : null}
                       </div>
                     )}
@@ -351,8 +369,8 @@ export default function Experience() {
                       onClick={handleBackToMood}
                       className="flex items-center space-x-2"
                     >
-                      <Heart className="w-4 h-4" />
-                      <span>Quay lại</span>
+                      <Heart className="w-4 h-4 text-brown-primary dark:text-dark-text" />
+                      <span className='text-brown-primary dark:text-dark-text'>Quay lại</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -364,7 +382,7 @@ export default function Experience() {
               <Card className="food-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <MapPin className="w-6 h-6 text-green-primary" />
+                    <MapPin className="w-6 h-6 text-green-primary dark:text-dark-text" />
                     <span>Hoàn thành!</span>
                   </CardTitle>
                 </CardHeader>
@@ -394,15 +412,34 @@ export default function Experience() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Cloud className="w-4 h-4 text-orange-primary" />
-                        <span className="text-brown-primary dark:text-dark-text">
-                          Thời tiết: {getWeather()?.location?.name || 'Đã lấy'}
-                        </span>
+                        <div className="flex-1">
+                          <span className="text-brown-primary dark:text-dark-text">
+                            Thời tiết: {getWeather()?.current?.location?.name || 'Đã lấy'}
+                          </span>
+                          {getWeather()?.current && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-sm text-brown-primary/70 dark:text-dark-text-secondary">
+                                {Math.round(getWeather()?.current.temp_c || 0)}°C
+                              </span>
+                              {getWeather()?.current.condition?.icon && (
+                                <img 
+                                  src={getWeather()?.current.condition.icon} 
+                                  alt={getWeather()?.current.condition.text}
+                                  className="w-6 h-6"
+                                />
+                              )}
+                              <span className="text-sm text-brown-primary/70 dark:text-dark-text-secondary">
+                                {getWeather()?.current.condition?.text}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     <div className="mt-6">
                       <Button 
-                        className="bg-green-primary hover:bg-green-primary/90"
+                        className="bg-orange-primary hover:bg-orange-primary/90 text-white dark:text-dark-text"
                         onClick={() => {
                           // TODO: Navigate to recommendations
                           console.log('Navigate to recommendations');
@@ -418,8 +455,8 @@ export default function Experience() {
                       onClick={handleBackToWeather}
                       className="flex items-center space-x-2"
                     >
-                      <Cloud className="w-4 h-4" />
-                      <span>Quay lại</span>
+                      <Cloud className="w-4 h-4 text-brown-primary dark:text-dark-text" />
+                      <span className='text-brown-primary dark:text-dark-text'>Quay lại</span>
                     </Button>
                   </div>
                 </CardContent>

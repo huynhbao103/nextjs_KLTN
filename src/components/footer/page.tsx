@@ -4,8 +4,11 @@ import { motion } from 'framer-motion'
 import logo from '@/public/images/logo.png'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSession } from 'next-auth/react'
 
 export default function footer() {
+  const { data: session } = useSession()
+
   return (
     <div>
    {/* CTA Section */}
@@ -37,7 +40,7 @@ export default function footer() {
             whileTap={{ scale: 0.95 }}
           >
             <Link 
-              href="/experience"
+              href={session ? "/experience" : "/login"}
               className="inline-block bg-white-primary text-brown-primary px-12 py-6 rounded-full text-xl font-bold hover:shadow-2xl transition-all duration-300"
           >
             Bắt Đầu Miễn Phí

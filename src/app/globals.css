@@ -10,6 +10,7 @@
   body {
     font-family: 'Inter', sans-serif;
     @apply bg-cream-primary dark:bg-dark-bg;
+    padding-top: 80px; /* Compensate for fixed header */
   }
 }
 
