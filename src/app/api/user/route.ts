@@ -4,6 +4,9 @@ import User from '@/models/User'
 import dbConnect from '@/lib/dbConnect'
 import { differenceInDays } from 'date-fns'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await auth()

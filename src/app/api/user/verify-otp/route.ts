@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { auth } from '@/auth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'otp_secret_key';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {

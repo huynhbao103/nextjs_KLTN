@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import User from '@/models/User';
 import dbConnect from '@/lib/dbConnect';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
