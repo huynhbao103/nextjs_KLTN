@@ -4,6 +4,9 @@ import User from '@/models/User'
 import dbConnect from '@/lib/dbConnect'
 import bcrypt from 'bcryptjs'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     const session = await auth()

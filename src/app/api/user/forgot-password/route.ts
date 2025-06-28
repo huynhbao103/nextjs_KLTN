@@ -4,7 +4,10 @@ import nodemailer from 'nodemailer';
 import User from '@/models/User';
 import dbConnect from '@/lib/dbConnect';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'otp_secret_key';
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'reset_secret_key';
 const OTP_EXPIRE_SECONDS = 60; // 1 phút
 
 function generateOTP(length = 6) {
