@@ -15,6 +15,9 @@ import { MoodSelection } from '@/components/experience/MoodSelection';
 import { ProfileSetupForm } from '@/components/experience/ProfileSetupForm';
 import { ProfileUpdatePrompt } from '@/components/experience/ProfileUpdatePrompt';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 type ExperienceStep = 'loading' | 'profile' | 'profile-update' | 'mood' | 'weather' | 'complete';
 
 export default function Experience() {
