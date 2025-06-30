@@ -1,98 +1,69 @@
 import { WeatherApiResponse, GeocodeResponse } from '@/types/weather';
 
-// API Configuration - Gọi BE API thay vì external API
 const WEATHER_API_BASE_URL = '/api/weather';
-const GEOCODING_API_BASE_URL = '/api/geocode';
+const GEOCODE_API_BASE_URL = '/api/geocode';
 
-// Lấy thông tin thời tiết từ BE API
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherApiResponse> {
   const url = `${WEATHER_API_BASE_URL}?lat=${lat}&lon=${lon}`;
   
-  try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data; // Trả về toàn bộ data thay vì chỉ current
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
-    throw error;
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
   }
+  
+  return response.json();
 }
 
-// Lấy dự báo thời tiết 3 ngày
 export async function getWeatherForecast(lat: number, lon: number, days: number = 3): Promise<WeatherApiResponse> {
   const url = `${WEATHER_API_BASE_URL}?lat=${lat}&lon=${lon}&days=${days}`;
   
-  try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data; // Trả về toàn bộ data thay vì chỉ forecast
-  } catch (error) {
-    console.error('Error fetching weather forecast:', error);
-    throw error;
-  }
-}
-
-// Chuyển đổi tọa độ thành địa chỉ (Reverse Geocoding)
-export async function getAddressFromCoords(lat: number, lon: number): Promise<GeocodeResponse> {
-  const url = `${GEOCODING_API_BASE_URL}?lat=${lat}&lon=${lon}`;
+  const response = await fetch(url);
   
-  try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Geocoding API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching address:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
   }
-}
-
-// Tìm kiếm địa chỉ từ tên (Forward Geocoding)
-export async function getCoordsFromAddress(address: string): Promise<GeocodeResponse[]> {
-  const encodedAddress = encodeURIComponent(address);
-  const url = `${GEOCODING_API_BASE_URL}?address=${encodedAddress}`;
   
+  return response.json();
+}
+
+export async function getGeocodeData(query: string): Promise<GeocodeResponse[]> {
+  const url = `${GEOCODE_API_BASE_URL}?q=${encodeURIComponent(query)}`;
+  
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Geocode API error: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+export async function getWeatherByLocation(location: string): Promise<WeatherApiResponse> {
   try {
-    const response = await fetch(url);
+    // First get coordinates from location name
+    const geocodeData = await getGeocodeData(location);
     
-    if (!response.ok) {
-      throw new Error(`Geocoding API error: ${response.status} ${response.statusText}`);
+    if (geocodeData.length === 0) {
+      throw new Error('Location not found');
     }
     
-    const data = await response.json();
-    return data;
+    const { lat, lon } = geocodeData[0];
+    
+    // Then get weather data using coordinates
+    return await getWeatherData(lat, lon);
   } catch (error) {
-    console.error('Error searching address:', error);
+    console.error('Error fetching weather by location:', error);
     throw error;
   }
 }
 
-// Cache utilities
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-
-interface CacheItem<T> {
-  data: T;
-  timestamp: number;
-}
-
+// Cache implementation for weather data
 class WeatherCache {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly TTL = 10 * 60 * 1000; // 10 minutes
 
-  set<T>(key: string, data: T): void {
+  set(key: string, data: any): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()
@@ -101,14 +72,17 @@ class WeatherCache {
 
   get<T>(key: string): T | null {
     const item = this.cache.get(key);
-    if (!item) return null;
     
-    if (Date.now() - item.timestamp > CACHE_DURATION) {
+    if (!item) {
+      return null;
+    }
+    
+    if (Date.now() - item.timestamp > this.TTL) {
       this.cache.delete(key);
       return null;
     }
     
-    return item.data;
+    return item.data as T;
   }
 
   clear(): void {
@@ -118,7 +92,7 @@ class WeatherCache {
 
 export const weatherCache = new WeatherCache();
 
-// Cached versions of API functions
+// Cached versions of the API functions
 export async function getCachedWeatherData(lat: number, lon: number): Promise<WeatherApiResponse> {
   const cacheKey = `weather_${lat}_${lon}`;
   const cached = weatherCache.get<WeatherApiResponse>(cacheKey);
@@ -132,15 +106,15 @@ export async function getCachedWeatherData(lat: number, lon: number): Promise<We
   return data;
 }
 
-export async function getCachedAddressFromCoords(lat: number, lon: number): Promise<GeocodeResponse> {
-  const cacheKey = `address_${lat}_${lon}`;
-  const cached = weatherCache.get<GeocodeResponse>(cacheKey);
+export async function getCachedGeocodeData(query: string): Promise<GeocodeResponse[]> {
+  const cacheKey = `geocode_${query}`;
+  const cached = weatherCache.get<GeocodeResponse[]>(cacheKey);
   
   if (cached) {
     return cached;
   }
   
-  const data = await getAddressFromCoords(lat, lon);
+  const data = await getGeocodeData(query);
   weatherCache.set(cacheKey, data);
   return data;
 } 

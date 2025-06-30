@@ -103,7 +103,7 @@ export default function HomePage() {
                   className="flex flex-col sm:flex-row items-center justify-center gap-6"
                 >
                   <Link 
-                    href={status === 'authenticated' ? "/experience" : "/login"} 
+                    href={status === 'authenticated' ? "/replie" : "/login"} 
                     className="btn-primary text-lg dark:bg-orange-primary dark:hover:bg-orange-primary/90"
                   >
                     Bắt Đầu Khám Phá

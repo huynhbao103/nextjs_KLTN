@@ -55,36 +55,8 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
-
-  // Scroll handling for header visibility
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      
-      // Show header when scrolling to top
-      if (currentScrollY < 100) {
-        setIsHeaderVisible(true)
-        setLastScrollY(currentScrollY)
-        return
-      }
-
-      // Hide header when scrolling down, show when scrolling up
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setIsHeaderVisible(false)
-      } else if (currentScrollY < lastScrollY) {
-        setIsHeaderVisible(true)
-      }
-      
-      setLastScrollY(currentScrollY)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [lastScrollY])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -150,10 +122,7 @@ export default function Header() {
       role="banner"
       aria-label="Main navigation"
       initial={{ y: 0 }}
-      animate={{ 
-        y: isHeaderVisible ? 0 : -100,
-        opacity: isHeaderVisible ? 1 : 0
-      }}
+      animate={{ y: 0, opacity: 1 }}
       transition={{ 
         duration: 0.3,
         ease: "easeInOut"
@@ -201,7 +170,7 @@ export default function Header() {
               Trang chủ
             </Link>
             <Link 
-              href="/experience" 
+              href="/replie" 
               className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
               aria-label="Explore food recommendations"
             >
@@ -365,7 +334,7 @@ export default function Header() {
                   Trang chủ
                 </Link>
                 <Link 
-                  href="/experience" 
+                  href="/profile" 
                   className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
                   onClick={handleMenuItemClick}
                   aria-label="Explore food recommendations"

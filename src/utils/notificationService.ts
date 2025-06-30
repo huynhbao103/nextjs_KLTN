@@ -22,7 +22,7 @@ export class NotificationService {
         label: 'Cập nhật ngay',
         onClick: () => {
           // Navigate to profile update
-          window.location.href = '/experience';
+          window.location.href = '/profile';
         }
       }
     });
@@ -39,7 +39,7 @@ export class NotificationService {
       action: {
         label: 'Cập nhật ngay',
         onClick: () => {
-          window.location.href = '/experience';
+          window.location.href = '/profile';
         }
       }
     });

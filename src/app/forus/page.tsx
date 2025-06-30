@@ -225,7 +225,7 @@ const Forus = () => {
             </Card>
           </motion.div>
         </div>
-      </div>\
+      </div>
       <Footer />
     </>
   )

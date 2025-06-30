@@ -40,7 +40,7 @@ export default function footer() {
             whileTap={{ scale: 0.95 }}
           >
             <Link 
-              href={session ? "/experience" : "/login"}
+              href={session ? "/replie" : "/login"}
               className="inline-block bg-white-primary text-brown-primary px-12 py-6 rounded-full text-xl font-bold hover:shadow-2xl transition-all duration-300"
           >
             Bắt Đầu Miễn Phí

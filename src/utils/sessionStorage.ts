@@ -18,14 +18,14 @@ const PROFILE_UPDATE_INTERVAL = 30 * 24 * 60 * 60 * 1000; // 30 ngày
 // Utility function để chuyển đổi WeatherData thành SessionWeatherData
 export function convertToSessionWeatherData(weatherData: WeatherData): SessionWeatherData {
   return {
-    current: {
-      location: {
-        name: weatherData.location.name || '',
-        country: weatherData.location.country || '',
-        region: weatherData.location.region || ''
-      },
+    location: {
+      name: weatherData.location.name || '',
+      country: weatherData.location.country || '',
+      region: weatherData.location.region || '',
       lat: weatherData.location.lat || 0,
-      lon: weatherData.location.lon || 0,
+      lon: weatherData.location.lon || 0
+    },
+    current: {
       temp_c: weatherData.current.temp_c || 0,
       temp_f: weatherData.current.temp_f || 0,
       feelslike_c: weatherData.current.feelslike_c || 0,
