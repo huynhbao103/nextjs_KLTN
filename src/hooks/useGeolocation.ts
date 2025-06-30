@@ -1,201 +1,60 @@
-import { useState, useEffect, useCallback } from 'react';
-import { GeolocationPosition, GeolocationError, LocationState } from '@/types/weather';
-import { getAddressFromCoords } from '@/lib/weatherApi';
+import { useState, useEffect } from 'react';
 
-export function useGeolocation() {
-  const [state, setState] = useState<LocationState>({
-    position: null,
-    address: null,
-    loading: false,
-    error: null
-  });
+interface GeolocationPosition {
+  coords: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+  };
+  timestamp: number;
+}
 
-  const [isClient, setIsClient] = useState(false);
+export const useGeolocation = () => {
+  const [position, setPosition] = useState<GeolocationPosition | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Kiểm tra trình duyệt có hỗ trợ geolocation không
-  const isSupported = isClient && typeof navigator !== 'undefined' && 'geolocation' in navigator;
-
-  // Fix hydration issue
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Lấy vị trí hiện tại
-  const getCurrentPosition = useCallback(async () => {
-    if (!isSupported) {
-      setState(prev => ({
-        ...prev,
-        error: 'Trình duyệt không hỗ trợ định vị địa lý'
-      }));
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser');
       return;
     }
 
-    setState(prev => ({
-      ...prev,
-      loading: true,
-      error: null
-    }));
+    setLoading(true);
 
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            resolve({
-              coords: {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                altitude: pos.coords.altitude || undefined,
-                altitudeAccuracy: pos.coords.altitudeAccuracy || undefined,
-                heading: pos.coords.heading || undefined,
-                speed: pos.coords.speed || undefined
-              },
-              timestamp: pos.timestamp
-            });
-          },
-          (error) => {
-            reject({
-              code: error.code,
-              message: getErrorMessage(error.code)
-            });
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000 // Cache trong 1 phút
-          }
-        );
-      });
+    const successHandler = (pos: GeolocationPosition) => {
+      setPosition(pos);
+      setError(null);
+      setLoading(false);
+    };
 
-      // Lấy địa chỉ từ tọa độ
-      const addressData = await getAddressFromCoords(
-        position.coords.latitude,
-        position.coords.longitude
-      );
+    const errorHandler = (err: GeolocationPositionError) => {
+      let errorMessage = 'Unknown error occurred';
+      
+      switch (err.code) {
+        case 1: // PERMISSION_DENIED
+          errorMessage = 'User denied the request for Geolocation';
+          break;
+        case 2: // POSITION_UNAVAILABLE
+          errorMessage = 'Location information is unavailable';
+          break;
+        case 3: // TIMEOUT
+          errorMessage = 'The request to get user location timed out';
+          break;
+      }
+      
+      setError(errorMessage);
+      setLoading(false);
+    };
 
-      setState({
-        position,
-        address: addressData.display_name,
-        loading: false,
-        error: null
-      });
-
-    } catch (error) {
-      const geolocationError = error as GeolocationError;
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: geolocationError.message
-      }));
-    }
-  }, [isSupported]);
-
-  // Theo dõi vị trí liên tục
-  const watchPosition = useCallback((callback?: (position: GeolocationPosition) => void) => {
-    if (!isSupported) {
-      setState(prev => ({
-        ...prev,
-        error: 'Trình duyệt không hỗ trợ định vị địa lý'
-      }));
-      return null;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const position: GeolocationPosition = {
-          coords: {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            altitude: pos.coords.altitude || undefined,
-            altitudeAccuracy: pos.coords.altitudeAccuracy || undefined,
-            heading: pos.coords.heading || undefined,
-            speed: pos.coords.speed || undefined
-          },
-          timestamp: pos.timestamp
-        };
-
-        try {
-          const addressData = await getAddressFromCoords(
-            position.coords.latitude,
-            position.coords.longitude
-          );
-
-          setState({
-            position,
-            address: addressData.display_name,
-            loading: false,
-            error: null
-          });
-
-          if (callback) {
-            callback(position);
-          }
-        } catch (error) {
-          console.error('Error getting address:', error);
-        }
-      },
-      (error) => {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: getErrorMessage(error.code)
-        }));
-      },
-      {
+    const options = {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 30000 // Cache trong 30 giây
-      }
-    );
+      maximumAge: 300000 // 5 minutes
+    };
 
-    return watchId;
-  }, [isSupported]);
-
-  // Dừng theo dõi vị trí
-  const clearWatch = useCallback((watchId: number) => {
-    if (isSupported) {
-      navigator.geolocation.clearWatch(watchId);
-    }
-  }, [isSupported]);
-
-  // Reset state
-  const reset = useCallback(() => {
-    setState({
-      position: null,
-      address: null,
-      loading: false,
-      error: null
-    });
+    navigator.geolocation.getCurrentPosition(successHandler, errorHandler, options);
   }, []);
 
-  // Tự động lấy vị trí khi component mount và client-side
-  useEffect(() => {
-    if (isSupported && !state.position && !state.loading && !state.error) {
-      getCurrentPosition();
-    }
-  }, [isSupported, state.position, state.loading, state.error]);
-
-  return {
-    ...state,
-    isSupported,
-    getCurrentPosition,
-    watchPosition,
-    clearWatch,
-    reset
-  };
-}
-
-// Helper function để chuyển đổi error code thành message
-function getErrorMessage(code: number): string {
-  switch (code) {
-    case 1:
-      return 'Quyền truy cập vị trí bị từ chối. Vui lòng cho phép truy cập vị trí trong cài đặt trình duyệt.';
-    case 2:
-      return 'Không thể xác định vị trí hiện tại. Vui lòng thử lại.';
-    case 3:
-      return 'Hết thời gian chờ xác định vị trí. Vui lòng thử lại.';
-    default:
-      return 'Có lỗi xảy ra khi xác định vị trí. Vui lòng thử lại.';
-  }
-} 
+  return { position, error, loading };
+}; 

@@ -8,7 +8,7 @@ import Header from "@/components/header/page";
 export default function Login() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/experience";
+  const callbackUrl = searchParams.get("callbackUrl") || "/profile";
   const error = searchParams.get("error");
   const registered = searchParams.get("registered");
 

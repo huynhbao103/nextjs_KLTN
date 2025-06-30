@@ -9,103 +9,76 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    await dbConnect()
+    
     const session = await auth()
     if (!session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
     const user = await User.findOne({ email: session.user.email })
-      .select('-password')
-      .lean()
-
     if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Convert dateOfBirth to string format for frontend
+    // Convert dateOfBirth to string for response
     const responseUser = {
-      ...user,
-      dateOfBirth: (user as any).dateOfBirth ? (user as any).dateOfBirth.toISOString().split('T')[0] : null
+      ...user.toObject(),
+      dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().split('T')[0] : null
     }
 
-    console.log('GET API response user:', responseUser) // Debug log
-    return NextResponse.json(responseUser)
+    return NextResponse.json({ user: responseUser })
   } catch (error) {
     console.error('Error fetching user:', error)
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    await dbConnect()
+    
     const session = await auth()
     if (!session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const data = await request.json()
-    console.log('Received data:', data) // Debug log
     
-    await dbConnect()
-
-    const user = await User.findOne({ email: session.user.email })
-    if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 })
-    }
-
-    // Convert dateOfBirth to Date object if it exists
+    // Convert dateOfBirth string to Date object if provided
     let dateOfBirth = null
     if (data.dateOfBirth) {
-      try {
-        dateOfBirth = new Date(data.dateOfBirth)
-        console.log('Converted dateOfBirth:', dateOfBirth) // Debug log
-      } catch (error) {
-        console.error('Error converting dateOfBirth:', error)
-        return NextResponse.json({ message: 'Invalid date format' }, { status: 400 })
+      dateOfBirth = new Date(data.dateOfBirth)
+      if (isNaN(dateOfBirth.getTime())) {
+        return NextResponse.json({ error: 'Invalid date format' }, { status: 400 })
       }
     }
 
-    // Cập nhật thông tin người dùng
     const updateData = {
-      name: data.name,
-      phone: data.phone,
-      gender: data.gender,
-      weight: data.weight,
-      height: data.height,
-      activityLevel: data.activityLevel,
-      medicalConditions: data.medicalConditions,
-      lastUpdateDate: new Date().toISOString(), // Use ISO string to avoid timezone issues
-      ...(dateOfBirth && { dateOfBirth })
+      ...data,
+      dateOfBirth,
+      updatedAt: new Date()
     }
-
-    console.log('Update data:', updateData) // Debug log
-    console.log('Current time:', new Date().toISOString()) // Debug current time
 
     const updatedUser = await User.findOneAndUpdate(
       { email: session.user.email },
-      { $set: updateData },
+      updateData,
       { new: true }
-    ).select('-password')
+    )
 
-    console.log('Updated user:', updatedUser) // Debug log
-    
-    // Convert dateOfBirth back to string format for frontend
+    if (!updatedUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Convert dateOfBirth back to string for response
     const responseUser = {
       ...updatedUser.toObject(),
       dateOfBirth: updatedUser.dateOfBirth ? updatedUser.dateOfBirth.toISOString().split('T')[0] : null
     }
-    
-    console.log('Response user with string dateOfBirth:', responseUser) // Debug log
-    return NextResponse.json(responseUser)
+
+    return NextResponse.json({ user: responseUser })
   } catch (error) {
     console.error('Error updating user:', error)
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 
