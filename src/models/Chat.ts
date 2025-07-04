@@ -7,7 +7,7 @@ export interface IChat extends Document {
     id: number;
     text: string;
     isUser: boolean;
-    timestamp: Date;
+    timestamp: string | Date;
   }>;
   createdAt: Date;
   updatedAt: Date;
@@ -38,7 +38,7 @@ const ChatSchema: Schema = new Schema({
       required: true
     },
     timestamp: {
-      type: Date,
+      type: Schema.Types.Mixed, // Chấp nhận cả string và Date
       default: Date.now
     }
   }],

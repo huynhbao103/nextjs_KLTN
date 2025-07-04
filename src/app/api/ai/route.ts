@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 
-const BE_URL = process.env.BE_URL || 'http://localhost:8000/api';
+const BE_URL = process.env.NEXT_PUBLIC_BE_URL || 'http://localhost:8000/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     console.log('User Name:', session.user.name);
 
     // Tạo JWT token cho backend
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const JWT_SECRET = process.env.JWT_SECRET || '';
     
     const tokenPayload = { 
       user_id: session.user.id,
