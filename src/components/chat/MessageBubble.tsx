@@ -13,41 +13,45 @@ const MessageBubble = ({ message, isUser }: { message: string, isUser: boolean }
           <img 
             src={session.user.image} 
             alt={session.user.name || 'User'} 
-            className="w-8 h-8 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover border-2 border-white-primary dark:border-dark-card shadow-lg"
           />
         );
       }
       // Nếu không có image thì hiển thị chữ cái đầu
-      return session.user.name?.[0] || session.user.email?.[0] || 'U';
+      return (
+        <span className="text-white-primary font-bold">
+          {session.user.name?.[0] || session.user.email?.[0] || 'U'}
+        </span>
+      );
     }
-    return 'AI';
+    return '';
   };
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in-0 slide-in-from-bottom-2 duration-300`}>
-      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-xs lg:max-w-md xl:max-w-lg`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in-0 slide-in-from-bottom-2 duration-300 mb-4`}>
+      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-3 max-w-3xl lg:max-w-4xl xl:max-w-5xl`}>
         {/* Avatar */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-lg ${
           isUser 
-            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg' 
-            : 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 text-gray-700 dark:text-gray-300 shadow-md'
+            ? 'bg-gradient-to-br from-orange-primary to-green-primary text-white-primary' 
+            : 'hidden'
         }`}>
-          {getUserAvatar()}
+          {isUser ? getUserAvatar() : ''}
         </div>
         
         {/* Message bubble */}
         <div
-          className={`px-4 py-3 rounded-2xl shadow-lg backdrop-blur-sm border ${
+          className={`px-6 py-4 backdrop-blur-sm ${
             isUser
-              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white border-blue-400 rounded-br-md'
-              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 rounded-bl-md'
+              ? 'bg-white-primary dark:bg-dark-card dark:text-dark-text border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md shadow-lg max-w-sm lg:max-w-md'
+              : 'text-brown-primary dark:text-dark-text max-w-2xl lg:max-w-3xl'
           } transition-all duration-200 hover:shadow-xl`}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message}</p>
+          <p className="text-lg whitespace-pre-wrap break-words font-medium leading-relaxed">{message}</p>
         </div>
         
         {/* Time indicator */}
-        <div className={`text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'text-right' : 'text-left'} opacity-60`}>
+        <div className={`text-xs text-brown-primary/60 dark:text-dark-text-secondary ${isUser ? 'text-right' : 'text-left'} opacity-80 flex-shrink-0`}>
           {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>

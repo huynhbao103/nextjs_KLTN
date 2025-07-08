@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/header/page';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,31 +27,14 @@ interface UserData {
   medicalConditions?: string[];
   createdAt: string;
   updatedAt: string;
+  image?: string;
 }
 
 // Danh sách bệnh lý phổ biến
 const COMMON_MEDICAL_CONDITIONS = [
   'Không có',
-  'Tiểu đường',
+  'Đái tháo đường',
   'Cao huyết áp',
-  'Bệnh tim mạch',
-  'Bệnh thận',
-  'Bệnh gan',
-  'Bệnh dạ dày',
-  'Bệnh đường ruột',
-  'Dị ứng thực phẩm',
-  'Không dung nạp lactose',
-  'Bệnh celiac',
-  'Bệnh gout',
-  'Bệnh tuyến giáp',
-  'Bệnh phổi',
-  'Bệnh xương khớp',
-  'Bệnh thần kinh',
-  'Bệnh mắt',
-  'Bệnh da liễu',
-  'Bệnh răng miệng',
-  'Bệnh hô hấp',
-  'Bệnh tiêu hóa'
 ];
 
 export default function ProfilePage() {
@@ -76,6 +59,12 @@ export default function ProfilePage() {
     medicalConditions: [] as string[]
   });
 
+  // Avatar state
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
   useEffect(() => {
     if (status === 'loading') return;
     
@@ -86,6 +75,12 @@ export default function ProfilePage() {
 
     fetchUserData();
   }, [status, router]);
+
+  useEffect(() => {
+    if (userData?.image) {
+      setAvatarPreview(userData.image);
+    }
+  }, [userData]);
 
   const fetchUserData = async () => {
     try {
@@ -172,6 +167,75 @@ export default function ProfilePage() {
     }
   );
 
+  // Avatar upload handler
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setAvatarError('Chỉ chấp nhận file ảnh');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setAvatarError('Ảnh quá lớn (tối đa 5MB)');
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarError(null);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const formData = new FormData();
+      formData.append('image', avatarFile);
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAvatarPreview(data.imageUrl);
+        setUserData((prev) => prev ? { ...prev, image: data.imageUrl } : prev);
+        setAvatarFile(null);
+        setSuccess('Cập nhật avatar thành công!');
+        await fetch('/api/auth/session?update');
+        window.location.reload();
+      } else {
+        setAvatarError(data.message || 'Lỗi khi upload avatar');
+      }
+    } catch (err) {
+      setAvatarError('Lỗi khi upload avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const res = await fetch('/api/user/avatar', { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        setAvatarPreview(null);
+        setUserData((prev) => prev ? { ...prev, image: undefined } : prev);
+        setSuccess('Đã xóa avatar!');
+        await fetch('/api/auth/session?update');
+        window.location.reload();
+      } else {
+        setAvatarError(data.message || 'Lỗi khi xóa avatar');
+      }
+    } catch (err) {
+      setAvatarError('Lỗi khi xóa avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -197,12 +261,8 @@ export default function ProfilePage() {
         const data = await response.json();
         setUserData(data.user);
         setSuccess('Cập nhật thông tin thành công!');
-        
-        // Update session if name changed
-        if (data.user.name !== session?.user?.name) {
-          // Trigger session update
-          window.location.reload();
-        }
+        await fetch('/api/auth/session?update');
+        window.location.reload();
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Có lỗi xảy ra khi cập nhật');
@@ -245,6 +305,61 @@ export default function ProfilePage() {
               <p className="text-muted-foreground">
                 Cập nhật thông tin cá nhân để nhận được gợi ý món ăn phù hợp nhất
               </p>
+              {/* Avatar section */}
+              <div className="flex items-center gap-6 mt-6">
+                <div className="relative w-24 h-24">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-primary"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl text-gray-500">
+                      {userData?.name?.[0] || userData?.email?.[0] || 'U'}
+                    </div>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="block">
+                    <span className="sr-only">Chọn ảnh đại diện</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      onChange={handleAvatarChange}
+                      disabled={avatarUploading}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleAvatarUpload}
+                      disabled={!avatarFile || avatarUploading}
+                      className="px-4"
+                    >
+                      {avatarUploading ? 'Đang lưu...' : 'Lưu avatar'}
+                    </Button>
+                    {avatarPreview && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={handleAvatarDelete}
+                        disabled={avatarUploading}
+                        className="px-4"
+                      >
+                        Xóa avatar
+                      </Button>
+                    )}
+                  </div>
+                  {avatarError && <div className="text-red-500 text-sm">{avatarError}</div>}
+                </div>
+              </div>
             </div>
 
             {error && (

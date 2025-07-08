@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import ChatHistory from './ChatHistory';
+import { Plus, X, MessageSquare, User } from 'lucide-react';
 
 interface ChatHistoryItem {
   _id: string;
@@ -41,55 +42,64 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 lg:hidden z-40"
+          className="fixed inset-0 bg-black/50 lg:hidden z-40 backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar - Fixed on both desktop and mobile */}
       <div
-        className={`fixed top-24 left-0 z-50 w-80 h-[calc(100vh-6rem)] bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-24 left-0 z-50 w-80 h-[calc(100vh-6rem)] bg-white-primary dark:bg-dark-card border-r border-gray-200 dark:border-gray-700 shadow-xl transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Lịch sử chat
-          </h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-primary/5 to-green-primary/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-8 rounded-lg bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-white-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-brown-primary dark:text-dark-text">
+              Lịch sử chat
+            </h2>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onNewChat}
-              className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+              className="p-2 text-brown-primary/60 hover:text-orange-primary dark:text-dark-text-secondary dark:hover:text-orange-primary transition-colors rounded-lg hover:bg-orange-primary/10"
               title="Cuộc trò chuyện mới"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors lg:hidden"
+              className="p-2 text-brown-primary/60 hover:text-brown-primary dark:text-dark-text-secondary dark:hover:text-dark-text transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
               title="Đóng"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* User info */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cream-primary/30 to-white-primary/30 dark:from-dark-bg/30 dark:to-dark-card/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-              {session.user.name?.[0] || session.user.email?.[0] || 'U'}
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-full flex items-center justify-center text-white-primary font-bold shadow-lg">
+              {session.user.image ? (
+                <img 
+                  src={session.user.image} 
+                  alt={session.user.name || 'User'} 
+                  className="w-10 h-10 rounded-full object-cover border-2 border-white-primary"
+                />
+              ) : (
+                <User className="w-5 h-5" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <p className="text-lg font-semibold text-brown-primary dark:text-dark-text truncate">
                 {session.user.name || 'Người dùng'}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-xs text-brown-primary/60 dark:text-dark-text-secondary truncate">
                 {session.user.email}
               </p>
             </div>
@@ -97,11 +107,20 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </div>
 
         {/* Chat history */}
-        <div className="flex-1 overflow-y-auto h-[calc(100vh-200px)]">
+        <div className="flex-1 overflow-y-auto h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-orange-primary/30 scrollbar-track-transparent hover:scrollbar-thumb-orange-primary/50">
           <ChatHistory
             onSelectChat={onSelectChat}
             currentChatId={currentChatId}
           />
+        </div>
+        
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cream-primary/20 to-white-primary/20 dark:from-dark-bg/20 dark:to-dark-card/20">
+          <div className="text-center">
+            <p className="text-xs text-brown-primary/50 dark:text-dark-text-secondary">
+              💡 Bạn có thể xóa cuộc trò chuyện bằng cách hover và click vào icon thùng rác
+            </p>
+          </div>
         </div>
       </div>
     </>
