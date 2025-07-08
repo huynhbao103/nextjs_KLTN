@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 
-const BE_URL = process.env.NEXT_PUBLIC_BE_URL || 'http://localhost:8000/api';
+const BE_URL = process.env.BE_URL || 'http://localhost:8000/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     console.log('User Name:', session.user.name);
 
     // Tạo JWT token cho backend
-    const JWT_SECRET = process.env.JWT_SECRET || '';
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     
     const tokenPayload = { 
       user_id: session.user.id,
@@ -35,11 +35,6 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    console.log('JWT Secret used:', JWT_SECRET);
-    console.log('JWT Token payload:', tokenPayload);
-    console.log('JWT Token created:', token);
-    
-    // Verify token locally to make sure it's valid
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       console.log('JWT Token verified locally:', decoded);
@@ -53,9 +48,6 @@ export async function POST(request: NextRequest) {
       'Authorization': `Bearer ${token}`
     };
 
-    console.log('Request body:', requestBody);
-    console.log('Request headers:', requestHeaders);
-    console.log('=== End Debug Info ===');
 
     const response = await axios.post(
       `${BE_URL}/langgraph/process`,
@@ -93,15 +85,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       response: aiResponse,
       timestamp: new Date().toISOString(),
-      backendData: response.data // Giữ lại data gốc để debug
+      backendData: response.data 
     });
 
   } catch (error: any) {
-    console.error('=== AI API Error Details ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    
-    // Xử lý các loại lỗi khác nhau
     if (error.code === 'ECONNREFUSED') {
       console.error('Connection refused - Backend not available');
       return NextResponse.json({
@@ -111,15 +98,6 @@ export async function POST(request: NextRequest) {
     }
     
     if (error.response) {
-      // Backend trả về lỗi
-      console.error('Backend error status:', error.response.status);
-      console.error('Backend error headers:', error.response.headers);
-      console.error('Backend error data:', error.response.data);
-      console.error('Backend error config:', {
-        url: error.response.config?.url,
-        method: error.response.config?.method,
-        headers: error.response.config?.headers
-      });
       
       return NextResponse.json({
         error: 'Backend error',

@@ -13,8 +13,9 @@ import QuickQuestions from '@/components/chat/QuickQuestions';
 import AIStatus from '@/components/chat/AIStatus';
 import Header from '@/components/header/page';
 import { useAI } from '@/hooks/useAI';
-import { Smile, Frown, Meh, Angry, Heart, ThumbsDown, AlertTriangle, MessageCircle, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import axios from 'axios';
+import PreferenceModal from '@/components/chat/PreferenceModal';
 
 interface ChatHistoryItem {
   _id: string;
@@ -29,44 +30,7 @@ interface ChatHistoryItem {
   }>;
 }
 
-// Mapping emotion name to icon với màu sắc đẹp hơn
-const emotionIcons: Record<string, { icon: JSX.Element, bgColor: string, hoverColor: string }> = {
-  'Vui': {
-    icon: <Smile className="w-10 h-10 text-yellow-500" />,
-    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    hoverColor: 'hover:bg-yellow-100 dark:hover:bg-yellow-900/40'
-  },
-  'Buồn': {
-    icon: <Frown className="w-10 h-10 text-blue-500" />,
-    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-    hoverColor: 'hover:bg-blue-100 dark:hover:bg-blue-900/40'
-  },
-  'Bình thường': {
-    icon: <Meh className="w-10 h-10 text-gray-500" />,
-    bgColor: 'bg-gray-50 dark:bg-gray-800/50',
-    hoverColor: 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-  },
-  'Tức giận': {
-    icon: <Angry className="w-10 h-10 text-red-500" />,
-    bgColor: 'bg-red-50 dark:bg-red-900/20',
-    hoverColor: 'hover:bg-red-100 dark:hover:bg-red-900/40'
-  },
-  'Mệt mỏi': {
-    icon: <AlertTriangle className="w-10 h-10 text-orange-500" />,
-    bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-    hoverColor: 'hover:bg-orange-100 dark:hover:bg-orange-900/40'
-  },
-  'Hạnh phúc': {
-    icon: <Heart className="w-10 h-10 text-pink-500" />,
-    bgColor: 'bg-pink-50 dark:bg-pink-900/20',
-    hoverColor: 'hover:bg-pink-100 dark:hover:bg-pink-900/40'
-  },
-  'Trầm cảm': {
-    icon: <ThumbsDown className="w-10 h-10 text-purple-500" />,
-    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-    hoverColor: 'hover:bg-purple-100 dark:hover:bg-purple-900/40'
-  },
-};
+
 
 // Hàm xác định buổi trong ngày theo giờ local (nếu muốn dùng)
 function getTimeOfDay(): 'sáng' | 'trưa' | 'chiều' | 'tối' {
@@ -83,7 +47,7 @@ export default function HomePage() {
   const { sendMessage, isLoading: aiLoading, error: aiError, clearError } = useAI();
   
   const [messages, setMessages] = useState([
-    { id: 1, text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
+    { id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
   ]);
 
   const [isTyping, setIsTyping] = useState(false);
@@ -95,10 +59,17 @@ export default function HomePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Thêm state cho workflow multi-turn
-  const [emotionPrompt, setEmotionPrompt] = useState<null | { prompt: string, emotions: string[] }>(null);
+  // State for unified modal
+  const [preferencePrompt, setPreferencePrompt] = useState<null | {
+    emotionPrompt?: { prompt: string; emotions: string[] };
+    cookingMethodPrompt?: { prompt: string; methods: string[] };
+  }>();
+  const [showPreferenceModal, setShowPreferenceModal] = useState(false);
+  const [selectedEmotion, setSelectedEmotion] = useState<string>('');
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+
+  // Thêm lại state sessionId
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isWaitingEmotion, setIsWaitingEmotion] = useState(false);
 
   // Check authentication and redirect if not logged in
   useEffect(() => {
@@ -158,6 +129,13 @@ export default function HomePage() {
     };
   }, [saveTimeout]);
 
+  // Debug cookingMethodPrompt
+  useEffect(() => {
+    if (preferencePrompt?.cookingMethodPrompt) {
+      console.log('cookingMethodPrompt:', preferencePrompt.cookingMethodPrompt);
+    }
+  }, [preferencePrompt]);
+
   // Show loading while checking authentication
   if (status === 'loading') {
     return (
@@ -175,99 +153,43 @@ export default function HomePage() {
     return null;
   }
 
-  // Hàm gửi câu hỏi lần đầu (multi-turn) - sử dụng route proxy, gửi kèm timeOfDay nếu muốn
+  // Replace old multi-turn logic with unified modal logic
   const sendFirstQuestion = async (question: string) => {
-    setEmotionPrompt(null);
+    setPreferencePrompt(null);
+    setShowPreferenceModal(false);
     setSessionId(null);
-    setIsWaitingEmotion(false);
-
-    // Nếu muốn gửi kèm timeOfDay:
-    // const timeOfDay = getTimeOfDay();
-    // body: JSON.stringify({ message: question, timeOfDay }),
+    setSelectedEmotion('');
+    setSelectedMethods([]);
 
     try {
-      const response = await fetch('/api/ai', {
+      const response = await fetch('/api/ai/langgraph/process', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: question }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, session_id: sessionId }),
       });
-
       const data = await response.json();
-
-      if (data.backendData?.emotion_prompt) {
-        setEmotionPrompt(data.backendData.emotion_prompt);
+      // Nếu backend trả về prompt cảm xúc hoặc phương pháp nấu
+      if (data.backendData?.emotion_prompt || data.backendData?.cooking_method_prompt) {
+        setPreferencePrompt({
+          emotionPrompt: data.backendData?.emotion_prompt,
+          cookingMethodPrompt: data.backendData?.cooking_method_prompt,
+        });
         setSessionId(data.backendData.session_id);
-        setIsWaitingEmotion(true);
-      } else {
-        const aiResponse = data.response || data.backendData?.result || data.backendData;
-        
-        let responseText;
-        if (typeof aiResponse === 'string') {
-            responseText = aiResponse;
-        } else if (aiResponse && typeof aiResponse.message === 'string') {
-            responseText = aiResponse.message;
-        } else if (aiResponse) {
-            responseText = JSON.stringify(aiResponse, null, 2);
-        } else {
-            responseText = 'Không nhận được phản hồi.'
-        }
-
-        const newAiMessage = {
-            id: Date.now(),
-            text: responseText,
-            isUser: false,
-            timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, newAiMessage]);
-        setIsWaitingEmotion(false);
+        setShowPreferenceModal(true);
+        return;
       }
-    } catch (error) {
-      console.error('Error sending first question:', error);
-       const newAiMessage = {
-          id: Date.now(),
-          text: 'Có lỗi xảy ra khi gửi câu hỏi. Vui lòng thử lại.',
-          isUser: false,
-          timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, newAiMessage]);
-      setIsWaitingEmotion(false);
-    }
-  };
-
-  // Hàm gửi cảm xúc - sử dụng route proxy
-  const sendEmotion = async (emotion: string) => {
-    if (!sessionId) return;
-    setIsWaitingEmotion(false);
-
-    try {
-      const res = await fetch('/api/ai/process-emotion', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ emotion, session_id: sessionId }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`API call failed with status: ${res.status}`);
-      }
-
-      const data = await res.json();
-      const aiResponse = data.result || data;
-
+      // Nếu không, trả về kết quả luôn
+      const aiResponse = data.response || data.backendData?.result || data.backendData;
       let responseText;
       if (typeof aiResponse === 'string') {
-          responseText = aiResponse;
+        responseText = aiResponse;
       } else if (aiResponse && typeof aiResponse.message === 'string') {
-          responseText = aiResponse.message;
+        responseText = aiResponse.message;
       } else if (aiResponse) {
-          responseText = JSON.stringify(aiResponse, null, 2);
+        responseText = JSON.stringify(aiResponse, null, 2);
       } else {
-          responseText = 'Không nhận được phản hồi.'
+        responseText = 'Không nhận được phản hồi.';
       }
-
       const newAiMessage = {
         id: Date.now(),
         text: responseText,
@@ -275,34 +197,65 @@ export default function HomePage() {
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, newAiMessage]);
-
+      setShowPreferenceModal(false);
     } catch (error) {
-      console.error('Error sending emotion:', error);
+      console.error('Error sending first question:', error);
       const newAiMessage = {
-          id: Date.now(),
-          text: 'Có lỗi xảy ra khi gửi cảm xúc. Vui lòng thử lại.',
-          isUser: false,
-          timestamp: new Date().toISOString(),
+        id: Date.now(),
+        text: 'Có lỗi xảy ra khi gửi câu hỏi. Vui lòng thử lại.',
+        isUser: false,
+        timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, newAiMessage]);
+      setShowPreferenceModal(false);
     }
   };
 
-  // Sửa handleSendMessage để dùng workflow mới
-  const handleSendMessage = async (text: string) => {
-    setShowQuickQuestions(false);
-
-    const newUserMessage = {
-        id: Date.now(),
-        text: text,
-        isUser: true,
-        timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, newUserMessage]);
+  const handlePreferenceConfirm = async (emotion: string, methods: string[]) => {
+    if (!sessionId) return;
+    setShowPreferenceModal(false);
+    setSelectedEmotion(emotion);
+    setSelectedMethods(methods);
+    try {
+      // Gửi cảm xúc trước (nếu có prompt cảm xúc)
+      if (preferencePrompt?.emotionPrompt) {
+        const res = await fetch('/api/ai/langgraph/process-emotion-cooking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emotion, session_id: sessionId, cooking_methods: methods }),
+        });
     
-    setIsTyping(true);
-    await sendFirstQuestion(text);
-    setIsTyping(false);
+
+        const data = await res.json();
+        const aiResponse = data.result || data;
+        let responseText;
+        if (typeof aiResponse === 'string') {
+          responseText = aiResponse;
+        } else if (aiResponse && typeof aiResponse.message === 'string') {
+          responseText = aiResponse.message;
+        } else if (aiResponse) {
+          responseText = JSON.stringify(aiResponse, null, 2);
+        } else {
+          responseText = 'Không nhận được phản hồi.';
+        }
+        const newAiMessage = {
+          id: Date.now(),
+          text: responseText,
+          isUser: false,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, newAiMessage]);
+      }
+    } catch (error) {
+      console.error('Error sending preferences:', error);
+      const newAiMessage = {
+        id: Date.now(),
+        text: 'Có lỗi xảy ra khi gửi thông tin cá nhân. Vui lòng thử lại.',
+        isUser: false,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, newAiMessage]);
+    }
   };
 
   const saveChatToDatabase = async (chatMessages: any[]) => {
@@ -370,6 +323,21 @@ export default function HomePage() {
     setSidebarOpen(false);
   };
 
+  // Sửa lại handleSendMessage (bị xóa nhầm do refactor)
+  const handleSendMessage = async (text: string) => {
+    setShowQuickQuestions(false);
+    const newUserMessage = {
+      id: Date.now(),
+      text: text,
+      isUser: true,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, newUserMessage]);
+    setIsTyping(true);
+    await sendFirstQuestion(text);
+    setIsTyping(false);
+  };
+
   return (
     <div className="flex flex-col h-screen font-sans bg-cream-primary dark:bg-dark-bg">
       {/* Header */}
@@ -412,13 +380,13 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            {/* <button
               onClick={() => saveChatToDatabase(messages)}
               disabled={isSaving || messages.length <= 1}
               className="px-3 py-1 text-xs bg-orange-primary text-white-primary rounded-lg hover:bg-orange-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? 'Đang lưu...' : 'Lưu chat'}
-            </button>
+            </button> */}
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm text-green-600 dark:text-green-400 font-medium">Online</span>
             {isSaving && (
@@ -441,7 +409,7 @@ export default function HomePage() {
             <AnimatePresence>
               {messages.map((msg, index) => (
                 <motion.div
-                  key={msg.id}
+                  key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -492,69 +460,18 @@ export default function HomePage() {
         onClearError={clearError} 
       />
 
-      {/* Modal chọn cảm xúc - Được thiết kế lại đẹp hơn */}
+      {/* Modals */}
       <AnimatePresence>
-        {emotionPrompt && isWaitingEmotion && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white-primary dark:bg-dark-card p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-700"
-            >
-              {/* Header */}
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8 text-white-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-brown-primary dark:text-dark-text mb-2">
-                  Chia sẻ cảm xúc
-                </h2>
-                <p className="text-brown-primary/70 dark:text-dark-text-secondary">
-                  {emotionPrompt.prompt}
-                </p>
-              </div>
-
-              {/* Emotion buttons */}
-              <div className="grid grid-cols-2 gap-4">
-                {emotionPrompt.emotions.map((emotion) => {
-                  const emotionData = emotionIcons[emotion] || emotionIcons['Bình thường'];
-                  return (
-                    <motion.button
-                      key={emotion}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 ${emotionData.bgColor} ${emotionData.hoverColor} transition-all duration-300 group`}
-                      onClick={() => sendEmotion(emotion)}
-                    >
-                      <div className="transform group-hover:scale-110 transition-transform duration-300">
-                        {emotionData.icon}
-                      </div>
-                      <span className="font-semibold text-base text-brown-primary dark:text-dark-text group-hover:text-orange-primary dark:group-hover:text-orange-primary transition-colors">
-                        {emotion}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Close button */}
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setIsWaitingEmotion(false)}
-                  className="text-brown-primary/60 dark:text-dark-text-secondary hover:text-brown-primary dark:hover:text-dark-text transition-colors text-sm font-medium"
-                >
-                  Bỏ qua
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+        {showPreferenceModal && preferencePrompt && (
+          <PreferenceModal
+            open={showPreferenceModal}
+            emotions={preferencePrompt.emotionPrompt?.emotions || [
+              'Vui vẻ', 'Buồn bã', 'Bình thường', 'Tức giận', 'Mệt mỏi', 'Hạnh phúc', 'Trầm cảm']}
+            methods={preferencePrompt.cookingMethodPrompt?.methods || [
+              'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào']}
+            onConfirm={handlePreferenceConfirm}
+            onCancel={() => setShowPreferenceModal(false)}
+          />
         )}
       </AnimatePresence>
     </div>

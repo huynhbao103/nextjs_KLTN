@@ -9,9 +9,13 @@ const ChatWindow = ({ children }: { children: React.ReactNode }) => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(210,100,38,0.1)_1px,transparent_0)] bg-[length:20px_20px]"></div>
       </div>
       
-      {/* Chat container */}
-      <div className="relative h-full overflow-y-auto p-6 md:p-8 space-y-4 scrollbar-thin scrollbar-thumb-orange-primary/30 scrollbar-track-transparent hover:scrollbar-thumb-orange-primary/50 transition-all duration-300">
-        {children}
+      {/* Chat container - improved layout */}
+      <div className="relative h-full overflow-y-auto scrollbar-thin scrollbar-thumb-orange-primary/30 scrollbar-track-transparent hover:scrollbar-thumb-orange-primary/50 transition-all duration-300">
+        <div className="min-h-full flex flex-col justify-end p-6 md:p-8">
+          <div className="space-y-4">
+            {children}
+          </div>
+        </div>
       </div>
       
       {/* Bottom fade effect */}

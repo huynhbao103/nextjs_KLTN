@@ -56,7 +56,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-primary/5 to-green-primary/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center">
+            <div className="w-10 h-8 rounded-lg bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center">
               <MessageSquare className="w-4 h-4 text-white-primary" />
             </div>
             <h2 className="text-lg font-bold text-brown-primary dark:text-dark-text">
@@ -96,7 +96,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-brown-primary dark:text-dark-text truncate">
+              <p className="text-lg font-semibold text-brown-primary dark:text-dark-text truncate">
                 {session.user.name || 'Người dùng'}
               </p>
               <p className="text-xs text-brown-primary/60 dark:text-dark-text-secondary truncate">

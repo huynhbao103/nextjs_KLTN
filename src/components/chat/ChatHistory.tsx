@@ -102,7 +102,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectChat, currentChatId }
   if (error) {
     return (
       <div className="p-4 text-center">
-        <p className="text-red-500 text-sm">{error}</p>
+        <p className="text-red-500 text-lg">{error}</p>
         <button
           onClick={fetchChatHistory}
           className="mt-2 px-4 py-2 bg-orange-primary text-white-primary rounded-lg hover:bg-orange-primary/90 transition-colors"
@@ -146,7 +146,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectChat, currentChatId }
                       ? 'text-orange-primary' 
                       : 'text-brown-primary/60 dark:text-dark-text-secondary'
                   }`} />
-                  <h3 className={`text-sm font-semibold truncate ${
+                  <h3 className={`text-lg font-semibold truncate ${
                     currentChatId === chat._id
                       ? 'text-orange-primary dark:text-orange-primary'
                       : 'text-brown-primary dark:text-dark-text'

@@ -34,6 +34,7 @@ interface UserData {
 const COMMON_MEDICAL_CONDITIONS = [
   'Không có',
   'Đái tháo đường',
+  'Cao huyết áp',
 ];
 
 export default function ProfilePage() {
