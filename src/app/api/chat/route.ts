@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const chats = await Chat.find({ userId: session.user.email })
-      .select('title createdAt updatedAt messages')
+      .select('title createdAt updatedAt messages sessionId')
       .sort({ updatedAt: -1 })
       .limit(50);
 
@@ -35,35 +35,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { chatId, messages, title } = await request.json();
+    const { chatId, messages, title, sessionId } = await request.json();
+
+    console.log('=== Chat API Debug ===');
+    console.log('Received sessionId:', sessionId);
+    console.log('ChatId:', chatId);
+    console.log('Messages count:', messages?.length);
 
     if (chatId) {
       // Cập nhật chat hiện tại
+      const updateFields: any = {
+        messages,
+        title: title || 'Cuộc trò chuyện mới',
+        updatedAt: new Date()
+      };
+      if (sessionId) updateFields.sessionId = sessionId;
+      console.log('Update fields:', updateFields);
+      console.log('Update query:', { _id: chatId, userId: session.user.email });
       const updatedChat = await Chat.findOneAndUpdate(
         { _id: chatId, userId: session.user.email },
-        { 
-          messages,
-          title: title || 'Cuộc trò chuyện mới',
-          updatedAt: new Date()
-        },
+        updateFields,
         { new: true }
       );
-
       if (!updatedChat) {
         return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
       }
-
-      return NextResponse.json({ chat: updatedChat });
+      console.log('Updated chat sessionId:', updatedChat.sessionId);
+      console.log('Updated chat full data:', updatedChat.toObject());
+      return NextResponse.json({ 
+        chat: updatedChat,
+        debug: {
+          sessionId: updatedChat.sessionId,
+          receivedSessionId: sessionId
+        }
+      });
     } else {
       // Tạo chat mới
-      const newChat = new Chat({
+      console.log('Creating new chat with sessionId:', sessionId);
+      const chatData = {
         userId: session.user.email,
         title: title || 'Cuộc trò chuyện mới',
-        messages
-      });
+        messages,
+        sessionId: sessionId || null
+      };
+      console.log('New chat data:', chatData);
+      const newChat = new Chat(chatData);
 
       await newChat.save();
-      return NextResponse.json({ chat: newChat }, { status: 201 });
+      console.log('New chat saved with sessionId:', newChat.sessionId);
+      console.log('New chat full data:', newChat.toObject());
+      return NextResponse.json({ 
+        chat: newChat, 
+        debug: {
+          sessionId: newChat.sessionId,
+          receivedSessionId: sessionId
+        }
+      }, { status: 201 });
     }
   } catch (error) {
     console.error('Error saving chat:', error);

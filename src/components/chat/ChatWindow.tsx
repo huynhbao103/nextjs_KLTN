@@ -3,7 +3,7 @@ import React from 'react';
 
 const ChatWindow = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex-1 bg-gradient-to-b from-white-primary/30 to-cream-primary/20 dark:from-dark-card/30 dark:to-dark-bg/20 relative overflow-hidden">
+    <div className="chat-window flex-1 bg-gradient-to-b from-white-primary/30 to-cream-primary/20 dark:from-dark-card/30 dark:to-dark-bg/20 relative overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-5 dark:opacity-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(210,100,38,0.1)_1px,transparent_0)] bg-[length:20px_20px]"></div>

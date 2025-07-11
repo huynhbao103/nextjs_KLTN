@@ -12,17 +12,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message } = await request.json();
+    const { message, session_id } = await request.json();
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    console.log('=== AI API Debug Info ===');
-    console.log('Sending message to backend:', message);
+    console.log('=== Classify Intent API Debug Info ===');
+    console.log('Message to classify:', message);
+    console.log('Session ID:', session_id);
     console.log('Backend URL:', BE_URL);
     console.log('User ID:', session.user.id);
     console.log('User Email:', session.user.email);
-    console.log('User Name:', session.user.name);
 
     // Tạo JWT token cho backend
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -35,63 +35,49 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      console.log('JWT Token verified locally:', decoded);
-    } catch (verifyError) {
-      console.error('JWT Token verification failed locally:', verifyError);
-    }
-
-    // Luôn gửi đến /process endpoint (bước 1)
-    const endpoint = '/langgraph/process';
-    const requestBody = { question: message };
+    const requestBody = {
+      message,
+      session_id: session_id || null
+    };
     
     const requestHeaders = { 
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     };
 
-    console.log('Using endpoint:', endpoint);
+    console.log('Sending to langgraph classify-intent endpoint');
     console.log('Request body:', requestBody);
 
     const response = await axios.post(
-      `${BE_URL}${endpoint}`,
+      `${BE_URL}/langgraph/classify-intent`,
       requestBody,
       { headers: requestHeaders }
     );
 
-    console.log('Backend response:', response.data);
+    console.log('Backend classify-intent response:', response.data);
 
     // Xử lý response từ backend
-    let aiResponse = '';
+    let intent = 'other'; // default intent
     if (response.data) {
-      // Nếu backend trả về trực tiếp string
-      if (typeof response.data === 'string') {
-        aiResponse = response.data;
-      }
-      // Nếu backend trả về object có field response
-      else if (response.data.response) {
-        aiResponse = response.data.response;
-      }
-      // Nếu backend trả về object có field answer
-      else if (response.data.answer) {
-        aiResponse = response.data.answer;
-      }
-      // Nếu backend trả về object có field message
-      else if (response.data.message) {
-        aiResponse = response.data.message;
-      }
-      // Nếu backend trả về object khác, convert to string
-      else {
-        aiResponse = JSON.stringify(response.data);
+      if (response.data.intent) {
+        intent = response.data.intent;
+      } else if (typeof response.data === 'string') {
+        intent = response.data;
       }
     }
 
+    // Validate intent
+    const validIntents = ['dislike', 'select', 'like', 'question', 'other'];
+    if (!validIntents.includes(intent)) {
+      intent = 'other';
+    }
+
+    console.log('Classified intent:', intent);
+
     return NextResponse.json({
-      status: 'success',
-      message: aiResponse,
+      intent: intent,
       timestamp: new Date().toISOString(),
-      backendData: response.data 
+      backendData: response.data
     });
 
   } catch (error: any) {
@@ -99,25 +85,24 @@ export async function POST(request: NextRequest) {
       console.error('Connection refused - Backend not available');
       return NextResponse.json({
         error: 'Backend service is not available',
-        response: 'Xin lỗi, dịch vụ backend hiện không khả dụng. Vui lòng thử lại sau.'
+        intent: 'other' // fallback intent
       }, { status: 503 });
     }
     
     if (error.response) {
-      
+      console.error('Backend classify-intent error:', error.response.data);
       return NextResponse.json({
         error: 'Backend error',
-        response: error.response.data?.message || error.response.data?.detail || 'Có lỗi xảy ra từ backend',
+        intent: 'other', // fallback intent
         status: error.response.status,
         details: error.response.data
       }, { status: error.response.status });
     }
 
-    console.error('=== End Error Details ===');
-
+    console.error('Classify intent error:', error);
     return NextResponse.json({
       error: 'Internal server error',
-      response: 'Xin lỗi, tôi gặp vấn đề kỹ thuật. Vui lòng thử lại sau.'
+      intent: 'other' // fallback intent
     }, { status: 500 });
   }
-}
+} 

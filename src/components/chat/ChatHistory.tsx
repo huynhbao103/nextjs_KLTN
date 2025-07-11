@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { MessageSquare, Clock, Trash2, MoreVertical } from 'lucide-react';
 
@@ -7,6 +7,7 @@ interface ChatHistoryItem {
   title: string;
   createdAt: string;
   updatedAt: string;
+  sessionId?: string;
   messages: Array<{
     id: number;
     text: string;
@@ -25,12 +26,23 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectChat, currentChatId }
   const [chats, setChats] = useState<ChatHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const selectedChatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (session?.user?.email) {
       fetchChatHistory();
     }
   }, [session]);
+
+  // Auto-scroll to selected chat
+  useEffect(() => {
+    if (currentChatId && selectedChatRef.current) {
+      selectedChatRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentChatId]);
 
   const fetchChatHistory = async () => {
     try {
@@ -131,6 +143,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectChat, currentChatId }
         {chats.map((chat) => (
           <div
             key={chat._id}
+            ref={currentChatId === chat._id ? selectedChatRef : null}
             className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${
               currentChatId === chat._id
                 ? 'bg-gradient-to-r from-orange-primary/10 to-green-primary/10 border-orange-primary/30 dark:border-orange-primary/50 shadow-lg'
@@ -156,11 +169,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectChat, currentChatId }
                 </div>
                 
                 <div className="flex items-center gap-2 text-xs text-brown-primary/60 dark:text-dark-text-secondary">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-orange-primary/60"></span>
-                    {chat.messages.length} tin nhắn
-                  </span>
-                  <span>•</span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatDate(chat.updatedAt)}

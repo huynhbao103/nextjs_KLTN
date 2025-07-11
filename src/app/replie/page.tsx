@@ -22,6 +22,7 @@ interface ChatHistoryItem {
   title: string;
   createdAt: string;
   updatedAt: string;
+  sessionId?: string;
   messages: Array<{
     id: number;
     text: string;
@@ -46,7 +47,12 @@ export default function HomePage() {
   const router = useRouter();
   const { sendMessage, isLoading: aiLoading, error: aiError, clearError } = useAI();
   
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Array<{
+    id: number;
+    text: string;
+    isUser: boolean;
+    timestamp: string;
+  }>>([
     { id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
   ]);
 
@@ -83,7 +89,7 @@ export default function HomePage() {
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    const chatContainer = document.querySelector('.overflow-y-auto');
+    const chatContainer = document.querySelector('.chat-window .overflow-y-auto');
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
@@ -92,7 +98,11 @@ export default function HomePage() {
   // Show error notification if AI error occurs
   useEffect(() => {
     if (aiError) {
-      console.error('AI Error:', aiError);
+      console.error('AI Error in main page:', aiError);
+      // Hiển thị thông báo lỗi cụ thể hơn
+      if (aiError.includes('Backend service is not available') || aiError.includes('ECONNREFUSED')) {
+        console.log('Backend connection issue detected');
+      }
     }
   }, [aiError]);
 
@@ -129,13 +139,6 @@ export default function HomePage() {
     };
   }, [saveTimeout]);
 
-  // Debug cookingMethodPrompt
-  useEffect(() => {
-    if (preferencePrompt?.cookingMethodPrompt) {
-      console.log('cookingMethodPrompt:', preferencePrompt.cookingMethodPrompt);
-    }
-  }, [preferencePrompt]);
-
   // Show loading while checking authentication
   if (status === 'loading') {
     return (
@@ -153,151 +156,176 @@ export default function HomePage() {
     return null;
   }
 
-  // Replace old multi-turn logic with unified modal logic
+  // Flow đơn giản: luôn gửi đến process
   const sendFirstQuestion = async (question: string) => {
     setPreferencePrompt(null);
     setShowPreferenceModal(false);
-    setSessionId(null);
     setSelectedEmotion('');
     setSelectedMethods([]);
 
     try {
+      // Luôn gửi đến process endpoint
       const response = await fetch('/api/ai/langgraph/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: question, session_id: sessionId }),
-      });
-      const data = await response.json();
-      // Nếu backend trả về prompt cảm xúc hoặc phương pháp nấu
-      if (data.backendData?.emotion_prompt || data.backendData?.cooking_method_prompt) {
-        setPreferencePrompt({
-          emotionPrompt: data.backendData?.emotion_prompt,
-          cookingMethodPrompt: data.backendData?.cooking_method_prompt,
-        });
-        setSessionId(data.backendData.session_id);
-        setShowPreferenceModal(true);
-        return;
-      }
-      // Nếu không, trả về kết quả luôn
-      const aiResponse = data.response || data.backendData?.result || data.backendData;
-      let responseText;
-      if (typeof aiResponse === 'string') {
-        responseText = aiResponse;
-      } else if (aiResponse && typeof aiResponse.message === 'string') {
-        responseText = aiResponse.message;
-      } else if (aiResponse) {
-        responseText = JSON.stringify(aiResponse, null, 2);
-      } else {
-        responseText = 'Không nhận được phản hồi.';
-      }
-      const newAiMessage = {
-        id: Date.now(),
-        text: responseText,
-        isUser: false,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, newAiMessage]);
-      setShowPreferenceModal(false);
-    } catch (error) {
-      console.error('Error sending first question:', error);
-      const newAiMessage = {
-        id: Date.now(),
-        text: 'Có lỗi xảy ra khi gửi câu hỏi. Vui lòng thử lại.',
-        isUser: false,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, newAiMessage]);
-      setShowPreferenceModal(false);
-    }
-  };
-
-  const handlePreferenceConfirm = async (emotion: string, methods: string[]) => {
-    if (!sessionId) return;
-    setShowPreferenceModal(false);
-    setSelectedEmotion(emotion);
-    setSelectedMethods(methods);
-    try {
-      // Gửi cảm xúc trước (nếu có prompt cảm xúc)
-      if (preferencePrompt?.emotionPrompt) {
-        const res = await fetch('/api/ai/langgraph/process-emotion-cooking', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emotion, session_id: sessionId, cooking_methods: methods }),
-        });
-    
-
-        const data = await res.json();
-        const aiResponse = data.result || data;
-        let responseText;
-        if (typeof aiResponse === 'string') {
-          responseText = aiResponse;
-        } else if (aiResponse && typeof aiResponse.message === 'string') {
-          responseText = aiResponse.message;
-        } else if (aiResponse) {
-          responseText = JSON.stringify(aiResponse, null, 2);
-        } else {
-          responseText = 'Không nhận được phản hồi.';
-        }
-        const newAiMessage = {
-          id: Date.now(),
-          text: responseText,
-          isUser: false,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, newAiMessage]);
-      }
-    } catch (error) {
-      console.error('Error sending preferences:', error);
-      const newAiMessage = {
-        id: Date.now(),
-        text: 'Có lỗi xảy ra khi gửi thông tin cá nhân. Vui lòng thử lại.',
-        isUser: false,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, newAiMessage]);
-    }
-  };
-
-  const saveChatToDatabase = async (chatMessages: any[]) => {
-    if (!session?.user?.email) {
-      console.log('No session, skipping save');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      console.log('Saving chat with messages:', chatMessages.length, 'messages');
-      console.log('Current chat ID:', currentChatId);
-      
-      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          messages: chatMessages,
-          title: chatMessages.length > 1 ? chatMessages[1]?.text?.substring(0, 50) + '...' : 'Cuộc trò chuyện mới'
-        }),
+        body: JSON.stringify({ message: question }),
       });
 
-      console.log('Save chat response status:', response.status);
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Save chat response data:', data);
-        if (!currentChatId && data.chat?._id) {
-          setCurrentChatId(data.chat._id);
-          console.log('New chat ID set:', data.chat._id);
+      const data = await response.json();
+      console.log('Backend response:', data);
+      
+      // Xử lý response từ backend
+      if (data.backendData) {
+        const backendData = data.backendData;
+        
+        // Kiểm tra nếu cần chọn cảm xúc
+        if (backendData.status === 'need_emotion' && backendData.emotion_prompt) {
+          setPreferencePrompt({
+            emotionPrompt: backendData.emotion_prompt
+          });
+          setShowPreferenceModal(true);
+          
+          // Lưu session_id nếu có
+          if (backendData.session_id) {
+            setSessionId(backendData.session_id);
+          }
+          return;
         }
-        setLastSaved(new Date());
-        console.log('✅ Chat saved successfully');
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Save chat error:', errorData);
+        
+        // Kiểm tra nếu cần chọn phương pháp nấu
+        if (backendData.status === 'need_cooking_method' && backendData.cooking_method_prompt) {
+          setPreferencePrompt({
+            cookingMethodPrompt: backendData.cooking_method_prompt
+          });
+          setShowPreferenceModal(true);
+          
+          // Lưu session_id nếu có
+          if (backendData.session_id) {
+            setSessionId(backendData.session_id);
+          }
+          return;
+        }
+        
+        // Nếu có response thông thường
+        if (data.message) {
+          setMessages(prev => [...prev, {
+            id: Date.now(),
+            text: data.message,
+            isUser: false,
+            timestamp: new Date().toISOString()
+          }]);
+          
+          // Lưu session_id nếu có
+          if (backendData.session_id) {
+            setSessionId(backendData.session_id);
+          }
+        }
+      } else if (data.message) {
+        // Fallback cho response đơn giản
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: data.message,
+          isUser: false,
+          timestamp: new Date().toISOString()
+        }]);
       }
     } catch (error) {
-      console.error('❌ Error saving chat:', error);
+      console.error('Error sending message:', error);
+      
+      let errorMessage = "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Backend service is not available')) {
+          errorMessage = "Dịch vụ AI hiện không khả dụng. Vui lòng thử lại sau.";
+        } else if (error.message.includes('ECONNREFUSED')) {
+          errorMessage = "Không thể kết nối đến server AI. Vui lòng kiểm tra kết nối mạng.";
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: errorMessage,
+        isUser: false,
+        timestamp: new Date().toISOString()
+      }]);
+    }
+  };
+
+  const sendPreferencesToBackend = async (emotion: string, methods: string[]) => {
+    try {
+      const response = await axios.post('/api/ai/langgraph/process-emotion-cooking', {
+        message: messages[messages.length - 1]?.text || '',
+        emotion: emotion,
+        cooking_methods: methods,
+        session_id: sessionId
+      });
+
+      if (response.data.status==="success") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: response.data.message,
+          isUser: false,
+          timestamp: new Date().toISOString()
+        }]);
+      }
+
+      // Lưu session_id nếu backend trả về
+      if (response.data.session_id) {
+        setSessionId(response.data.session_id);
+      }
+    } catch (error) {
+      console.error('Error sending preferences:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: "Xin lỗi, có lỗi xảy ra khi xử lý thông tin. Vui lòng thử lại.",
+        isUser: false,
+        timestamp: new Date().toISOString()
+      }]);
+    }
+  };
+
+  const handlePreferenceConfirm = async (emotion: string, methods: string[]) => {
+    setSelectedEmotion(emotion);
+    setSelectedMethods(methods);
+    setShowPreferenceModal(false);
+    await sendPreferencesToBackend(emotion, methods);
+  };
+
+  const handlePreferenceCancel = async () => {
+    setShowPreferenceModal(false);
+    // Gửi giá trị mặc định khi user cancel
+    await sendPreferencesToBackend("Bình thường", [
+      'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào', "Quay"
+    ]);
+  };
+
+  const saveChatToDatabase = async (chatMessages: any[]) => {
+    if (!session?.user?.email || chatMessages.length <= 1) return;
+
+    setIsSaving(true);
+    try {
+      const response = await axios.post('/api/chat', {
+        title: chatMessages[1]?.text?.substring(0, 50) || 'Chat mới',
+        messages: chatMessages,
+        sessionId: sessionId
+      });
+
+      if (response.data._id && !currentChatId) {
+        setCurrentChatId(response.data._id);
+      }
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Error saving chat:', error);
     } finally {
       setIsSaving(false);
     }
@@ -310,12 +338,15 @@ export default function HomePage() {
   const handleSelectChat = (chat: ChatHistoryItem) => {
     setCurrentChatId(chat._id);
     setMessages(chat.messages);
+    // Lấy session_id từ chat object (đã load từ MongoDB)
+    setSessionId(chat.sessionId || null);
     setShowQuickQuestions(false);
     setSidebarOpen(false);
   };
 
   const handleNewChat = () => {
     setCurrentChatId(undefined);
+    setSessionId(null); // Reset session khi tạo chat mới
     setMessages([
       { id: 1, text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
     ]);
@@ -323,9 +354,17 @@ export default function HomePage() {
     setSidebarOpen(false);
   };
 
+  const handleSelectFood = (food: string) => {
+    console.log('User selected food:', food);
+    // Có thể gửi tin nhắn mới với món ăn được chọn
+    handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`);
+  };
+
   // Sửa lại handleSendMessage (bị xóa nhầm do refactor)
   const handleSendMessage = async (text: string) => {
     setShowQuickQuestions(false);
+    
+    // Tạo user message trước (chưa có intent)
     const newUserMessage = {
       id: Date.now(),
       text: text,
@@ -334,6 +373,8 @@ export default function HomePage() {
     };
     setMessages(prev => [...prev, newUserMessage]);
     setIsTyping(true);
+    
+    // Gửi tin nhắn và cập nhật intent sau
     await sendFirstQuestion(text);
     setIsTyping(false);
   };
@@ -380,13 +421,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* <button
-              onClick={() => saveChatToDatabase(messages)}
-              disabled={isSaving || messages.length <= 1}
-              className="px-3 py-1 text-xs bg-orange-primary text-white-primary rounded-lg hover:bg-orange-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSaving ? 'Đang lưu...' : 'Lưu chat'}
-            </button> */}
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm text-green-600 dark:text-green-400 font-medium">Online</span>
             {isSaving && (
@@ -414,7 +448,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
-                  <MessageBubble message={msg.text} isUser={msg.isUser} />
+                  <MessageBubble message={msg.text} isUser={msg.isUser} onSelectFood={handleSelectFood} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -457,7 +491,7 @@ export default function HomePage() {
       <AIStatus 
         isLoading={aiLoading} 
         error={aiError} 
-        onClearError={clearError} 
+        onClearError={() => { clearError(); }} 
       />
 
       {/* Modals */}
@@ -468,9 +502,9 @@ export default function HomePage() {
             emotions={preferencePrompt.emotionPrompt?.emotions || [
               'Vui vẻ', 'Buồn bã', 'Bình thường', 'Tức giận', 'Mệt mỏi', 'Hạnh phúc', 'Trầm cảm']}
             methods={preferencePrompt.cookingMethodPrompt?.methods || [
-              'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào']}
+              'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào',"Quay"]}
             onConfirm={handlePreferenceConfirm}
-            onCancel={() => setShowPreferenceModal(false)}
+            onCancel={handlePreferenceCancel}
           />
         )}
       </AnimatePresence>
