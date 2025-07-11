@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      result: aiResponse,
+      status: 'success',
+      message: aiResponse,
       timestamp: new Date().toISOString(),
       backendData: response.data
     });

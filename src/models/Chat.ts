@@ -11,6 +11,7 @@ export interface IChat extends Document {
   }>;
   createdAt: Date;
   updatedAt: Date;
+  sessionId?: string;
 }
 
 const ChatSchema: Schema = new Schema({
@@ -49,6 +50,11 @@ const ChatSchema: Schema = new Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  sessionId: {
+    type: String,
+    required: false,
+    default: null
   }
 });
 

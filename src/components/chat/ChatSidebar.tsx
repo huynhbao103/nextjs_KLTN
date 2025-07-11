@@ -8,6 +8,7 @@ interface ChatHistoryItem {
   title: string;
   createdAt: string;
   updatedAt: string;
+  sessionId?: string;
   messages: Array<{
     id: number;
     text: string;
