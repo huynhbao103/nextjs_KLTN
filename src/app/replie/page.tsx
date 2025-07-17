@@ -16,6 +16,10 @@ import { useAI } from '@/hooks/useAI';
 import { Sparkles } from 'lucide-react';
 import axios from 'axios';
 import PreferenceModal from '@/components/chat/PreferenceModal';
+import { useWeatherContext } from '@/hooks/useWeatherContext';
+import { useTimeOfDay } from '@/hooks/useTimeOfDay';
+import { useWeather } from '@/hooks/useWeather';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 interface ChatHistoryItem {
   _id: string;
@@ -68,7 +72,7 @@ export default function HomePage() {
   // State for unified modal
   const [preferencePrompt, setPreferencePrompt] = useState<null | {
     emotionPrompt?: { prompt: string; emotions: string[] };
-    cookingMethodPrompt?: { prompt: string; methods: string[] };
+    cookingMethodPrompt?: { prompt: string; cooking_methods: string[] };
   }>();
   const [showPreferenceModal, setShowPreferenceModal] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState<string>('');
@@ -76,6 +80,20 @@ export default function HomePage() {
 
   // Thêm lại state sessionId
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // Lấy vị trí hiện tại
+  const { position, error: geoError, loading: geoLoading } = useGeolocation();
+  const lat = position?.coords.latitude;
+  const lon = position?.coords.longitude;
+  // Lấy dữ liệu thời tiết
+  const { data: weatherData, loading: weatherLoading, error: weatherError } = useWeather(lat, lon);
+  
+  const temp = weatherData?.main?.temp;
+  const weatherContext = useWeatherContext(temp);
+  const timeOfDay = useTimeOfDay();
+
+  // Log nhiệt độ hiện tại để kiểm tra
+  console.log('Current temperature:', temp);
 
   // Check authentication and redirect if not logged in
   useEffect(() => {
@@ -156,21 +174,26 @@ export default function HomePage() {
     return null;
   }
 
-  // Flow đơn giản: luôn gửi đến process
-  const sendFirstQuestion = async (question: string) => {
-    setPreferencePrompt(null);
-    setShowPreferenceModal(false);
-    setSelectedEmotion('');
-    setSelectedMethods([]);
+  // Đổi tên: Xử lý tất cả tin nhắn, không chỉ câu đầu
+  const processUserMessage = async (question: string) => {
+    // Chuẩn hóa giá trị context
+    const weather = weatherContext?.name?.trim();
+    const timeOfDayStr = timeOfDay?.trim();
 
     try {
-      // Luôn gửi đến process endpoint
+      // API process luôn được gọi cho mọi tin nhắn
       const response = await fetch('/api/ai/langgraph/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: question }),
+        // Luôn gửi sessionId nếu có
+        body: JSON.stringify({
+          message: question,
+          weather,
+          time_of_day: timeOfDayStr,
+          session_id: sessionId, // Gửi sessionId ở đây
+        }),
       });
 
       if (!response.ok) {
@@ -178,38 +201,27 @@ export default function HomePage() {
       }
 
       const data = await response.json();
-      console.log('Backend response:', data);
+      console.log('Backend response from /process:', data);
       
-      // Xử lý response từ backend
       if (data.backendData) {
         const backendData = data.backendData;
         
-        // Kiểm tra nếu cần chọn cảm xúc
-        if (backendData.status === 'need_emotion' && backendData.emotion_prompt) {
+        // Backend yêu cầu chọn cảm xúc/chế độ ăn
+        if (
+          backendData.status === 'need_emotion_and_cooking' &&
+          backendData.emotion_prompt &&
+          backendData.cooking_method_prompt
+        ) {
           setPreferencePrompt({
-            emotionPrompt: backendData.emotion_prompt
+            emotionPrompt: backendData.emotion_prompt,
+            cookingMethodPrompt: backendData.cooking_method_prompt,
           });
           setShowPreferenceModal(true);
           
-          // Lưu session_id nếu có
           if (backendData.session_id) {
             setSessionId(backendData.session_id);
           }
-          return;
-        }
-        
-        // Kiểm tra nếu cần chọn phương pháp nấu
-        if (backendData.status === 'need_cooking_method' && backendData.cooking_method_prompt) {
-          setPreferencePrompt({
-            cookingMethodPrompt: backendData.cooking_method_prompt
-          });
-          setShowPreferenceModal(true);
-          
-          // Lưu session_id nếu có
-          if (backendData.session_id) {
-            setSessionId(backendData.session_id);
-          }
-          return;
+          return; // Dừng lại để user chọn
         }
         
         // Nếu có response thông thường
@@ -221,7 +233,6 @@ export default function HomePage() {
             timestamp: new Date().toISOString()
           }]);
           
-          // Lưu session_id nếu có
           if (backendData.session_id) {
             setSessionId(backendData.session_id);
           }
@@ -235,7 +246,7 @@ export default function HomePage() {
           timestamp: new Date().toISOString()
         }]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       
       let errorMessage = "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.";
@@ -360,11 +371,10 @@ export default function HomePage() {
     handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`);
   };
 
-  // Sửa lại handleSendMessage (bị xóa nhầm do refactor)
+  // Sửa lại handleSendMessage để gọi hàm mới
   const handleSendMessage = async (text: string) => {
     setShowQuickQuestions(false);
     
-    // Tạo user message trước (chưa có intent)
     const newUserMessage = {
       id: Date.now(),
       text: text,
@@ -374,8 +384,7 @@ export default function HomePage() {
     setMessages(prev => [...prev, newUserMessage]);
     setIsTyping(true);
     
-    // Gửi tin nhắn và cập nhật intent sau
-    await sendFirstQuestion(text);
+    await processUserMessage(text); // Gọi hàm đã đổi tên
     setIsTyping(false);
   };
 
@@ -499,10 +508,8 @@ export default function HomePage() {
         {showPreferenceModal && preferencePrompt && (
           <PreferenceModal
             open={showPreferenceModal}
-            emotions={preferencePrompt.emotionPrompt?.emotions || [
-              'Vui vẻ', 'Buồn bã', 'Bình thường', 'Tức giận', 'Mệt mỏi', 'Hạnh phúc', 'Trầm cảm']}
-            methods={preferencePrompt.cookingMethodPrompt?.methods || [
-              'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào',"Quay"]}
+            emotions={preferencePrompt.emotionPrompt?.emotions || []}
+            methods={preferencePrompt.cookingMethodPrompt?.cooking_methods || []}
             onConfirm={handlePreferenceConfirm}
             onCancel={handlePreferenceCancel}
           />

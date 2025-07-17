@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message } = await request.json();
+    const { message, weather, time_of_day, session_id } = await request.json();
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
+    console.log("token tesst postman", token);
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       console.log('JWT Token verified locally:', decoded);
@@ -44,7 +45,10 @@ export async function POST(request: NextRequest) {
 
     // Luôn gửi đến /process endpoint (bước 1)
     const endpoint = '/langgraph/process';
-    const requestBody = { question: message };
+    const requestBody: any = { question: message };
+    if (weather) requestBody.weather = weather;
+    if (time_of_day) requestBody.time_of_day = time_of_day;
+    if (session_id) requestBody.session_id = session_id;
     
     const requestHeaders = { 
       'Content-Type': 'application/json',
