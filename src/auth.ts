@@ -136,12 +136,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.error("Error in session callback:", error)
         }
       }
+      // Đảm bảo luôn gán id vào session.user
+      if (session?.user && token?.id) {
+        session.user.id = token.id;
+      }
       return session
     },
     async jwt({ token, user, account }: any) {
       if (user) {
-        token.id = user.id
+        token.id = user.id;
       }
+      console.log('JWT callback - token:', token);
       return token
     }
   },

@@ -17,13 +17,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    console.log('=== Classify Intent API Debug Info ===');
-    console.log('Message to classify:', message);
-    console.log('Session ID:', session_id);
-    console.log('Backend URL:', BE_URL);
-    console.log('User ID:', session.user.id);
-    console.log('User Email:', session.user.email);
-
     // Tạo JWT token cho backend
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     
@@ -35,6 +28,7 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
+    console.log("token", token);
     const requestBody = {
       message,
       session_id: session_id || null

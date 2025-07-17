@@ -42,11 +42,6 @@ export default function HomePage() {
       description: 'Sử dụng trí tuệ nhân tạo để phân tích sở thích và đưa ra gợi ý phù hợp nhất'
     },
     {
-      icon: MapPin,
-      title: 'Tìm Quán Gần',
-      description: 'Tự động tìm kiếm các quán ăn ngon gần vị trí của bạn'
-    },
-    {
       icon: Clock,
       title: 'Tiết Kiệm Thời Gian',
       description: 'Không còn phải suy nghĩ "hôm nay ăn gì" nữa'
@@ -123,7 +118,8 @@ export default function HomePage() {
                   Tại Sao Chọn TastyMind?
                 </motion.h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="flex justify-center mx-auto items-center">
+                <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-2 gap-8">
                   {features.map((feature, index) => (
                     <motion.div
                       key={index}
@@ -141,6 +137,7 @@ export default function HomePage() {
                       <p className="text-brown-primary/70 dark:text-dark-text-secondary">{feature.description}</p>
                     </motion.div>
                   ))}
+                </div>
                 </div>
               </div>
             </section>
