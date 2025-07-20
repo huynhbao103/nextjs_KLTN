@@ -69,7 +69,7 @@ userSchema.methods.needsUpdate = function() {
   if (!this.lastUpdateDate) return true
   
   const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 1)
   
   return this.lastUpdateDate < thirtyDaysAgo
 }
