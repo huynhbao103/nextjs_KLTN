@@ -40,7 +40,7 @@ const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) =>
   // Get display message - show short message if there are food recommendations
   const getDisplayMessage = () => {
     if (hasFoodRecommendations) {
-      return "Tôi đã tìm thấy những món ăn phù hợp với sở thích của bạn!";
+      return "Tôi đã tìm thấy những món ăn!";
     }
     return message;
   };

@@ -20,6 +20,17 @@ import { useWeatherContext } from '@/hooks/useWeatherContext';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useWeather } from '@/hooks/useWeather';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import AnalysisStep from '@/components/chat/AnalysisStep'; // Import the new component
+
+// Define message types
+interface Message {
+  id: number;
+  text: string;
+  isUser: boolean;
+  timestamp: string;
+  type?: 'message' | 'analysis';
+  step?: string; // For analysis steps
+}
 
 interface ChatHistoryItem {
   _id: string;
@@ -27,17 +38,17 @@ interface ChatHistoryItem {
   createdAt: string;
   updatedAt: string;
   sessionId?: string;
-  messages: Array<{
-    id: number;
-    text: string;
-    isUser: boolean;
-    timestamp: string;
-  }>;
+  messages: Message[];
 }
 
+// Add a specific type for the prompt structure from the API
+interface Prompt {
+  message?: string;
+  options?: string[];
+  // emotions?: string[]; // No longer needed
+}
 
-
-// Hàm xác định buổi trong ngày theo giờ local (nếu muốn dùng)
+// Hàm xác định buổi trong ngày theo giờ local
 function getTimeOfDay(): 'sáng' | 'trưa' | 'chiều' | 'tối' {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 11) return 'sáng';
@@ -51,13 +62,8 @@ export default function HomePage() {
   const router = useRouter();
   const { sendMessage, isLoading: aiLoading, error: aiError, clearError } = useAI();
   
-  const [messages, setMessages] = useState<Array<{
-    id: number;
-    text: string;
-    isUser: boolean;
-    timestamp: string;
-  }>>([
-    { id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
+  const [messages, setMessages] = useState<Message[]>([
+    { id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString(), type: 'message' },
   ]);
 
   const [isTyping, setIsTyping] = useState(false);
@@ -69,447 +75,306 @@ export default function HomePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // State for unified modal
+  // State for the new prompt structure
   const [preferencePrompt, setPreferencePrompt] = useState<null | {
-    emotionPrompt?: { prompt: string; emotions: string[] };
-    cookingMethodPrompt?: { prompt: string; cooking_methods: string[] };
+    // emotionPrompt?: Prompt; // No longer needed
+    cookingMethodPrompt?: Prompt;
   }>();
   const [showPreferenceModal, setShowPreferenceModal] = useState(false);
-  const [selectedEmotion, setSelectedEmotion] = useState<string>('');
-  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+  const [showContinueButton, setShowContinueButton] = useState(false); // New state
 
-  // Thêm lại state sessionId
+  // State for session ID
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Lấy vị trí hiện tại
+  // Geolocation and Weather hooks
   const { position, error: geoError, loading: geoLoading } = useGeolocation();
   const lat = position?.coords.latitude;
   const lon = position?.coords.longitude;
-  // Lấy dữ liệu thời tiết
   const { data: weatherData, loading: weatherLoading, error: weatherError } = useWeather(lat, lon);
   
   const temp = weatherData?.main?.temp;
   const weatherContext = useWeatherContext(temp);
   const timeOfDay = useTimeOfDay();
 
-  // Log nhiệt độ hiện tại để kiểm tra
-  console.log('Current temperature:', temp);
-
-  // Check authentication and redirect if not logged in
+  // Authentication check
   useEffect(() => {
-    if (status === 'loading') return; // Still loading
-    
+    if (status === 'loading') return;
     if (status === 'unauthenticated') {
       router.push('/login');
-      return;
     }
   }, [status, router]);
 
-  // Auto scroll to bottom when new messages arrive
-  useEffect(() => {
-    const chatContainer = document.querySelector('.chat-window .overflow-y-auto');
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }, [messages]);
-
-  // Show error notification if AI error occurs
-  useEffect(() => {
-    if (aiError) {
-      console.error('AI Error in main page:', aiError);
-      // Hiển thị thông báo lỗi cụ thể hơn
-      if (aiError.includes('Backend service is not available') || aiError.includes('ECONNREFUSED')) {
-        console.log('Backend connection issue detected');
-      }
-    }
-  }, [aiError]);
-
-  // Auto-save chat when messages change (with debounce)
-  useEffect(() => {
-    if (!autoSave || messages.length <= 1) return; // Không lưu nếu chỉ có tin nhắn chào mừng
-
-    // Clear previous timeout
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-
-    // Set new timeout for auto-save
-    const timeout = setTimeout(() => {
-      saveChatToDatabase(messages);
-    }, 2000); // Lưu sau 2 giây không có thay đổi
-
-    setSaveTimeout(timeout);
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [messages, autoSave]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-    };
-  }, [saveTimeout]);
-
-  // Show loading while checking authentication
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-cream-primary dark:bg-dark-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-primary border-t-transparent mx-auto mb-6"></div>
-          <p className="text-brown-primary dark:text-dark-text text-lg font-medium">Đang kiểm tra đăng nhập...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render the page if not authenticated
-  if (status === 'unauthenticated') {
-    return null;
-  }
-
-  // Đổi tên: Xử lý tất cả tin nhắn, không chỉ câu đầu
+  // Rewritten for the new 2-step flow
   const processUserMessage = async (question: string) => {
-    // Chuẩn hóa giá trị context
-    const weather = weatherContext?.name?.trim();
-    const timeOfDayStr = timeOfDay?.trim();
+    // Sanitize and prepare data before sending
+    const weather = weatherContext?.name?.trim() || null;
+    const timeOfDayStr = timeOfDay?.trim() || null;
+    const sanitizedQuestion = question.trim();
 
     try {
-      // API process luôn được gọi cho mọi tin nhắn
+      // FE now calls its own API route, which handles auth
       const response = await fetch('/api/ai/langgraph/process', {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
+          // No Authorization header needed here anymore
         },
-        // Luôn gửi sessionId nếu có
         body: JSON.stringify({
-          message: question,
+          question: sanitizedQuestion,
           weather,
           time_of_day: timeOfDayStr,
-          session_id: sessionId, // Gửi sessionId ở đây
+          session_id: "", 
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+      let data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to process initial request');
+
+      if (typeof data.message === 'string') {
+        try {
+          const parsedMessage = JSON.parse(data.message);
+          if (parsedMessage && parsedMessage.status) data = parsedMessage;
+        } catch (e) { /* Not a JSON string, proceed */ }
       }
 
-      const data = await response.json();
-      console.log('Backend response from /process:', data);
-      
-      if (data.backendData) {
-        const backendData = data.backendData;
-        
-        // Backend yêu cầu chọn cảm xúc/chế độ ăn
-        if (
-          backendData.status === 'need_emotion_and_cooking' &&
-          backendData.emotion_prompt &&
-          backendData.cooking_method_prompt
-        ) {
-          setPreferencePrompt({
-            emotionPrompt: backendData.emotion_prompt,
-            cookingMethodPrompt: backendData.cooking_method_prompt,
-          });
-          setShowPreferenceModal(true);
-          
-          if (backendData.session_id) {
-            setSessionId(backendData.session_id);
-          }
-          return; // Dừng lại để user chọn
-        }
-        
-        // Nếu có response thông thường
-        if (data.message) {
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            text: data.message,
+      if (data.status === 'analysis_complete' && data.analysis_steps) {
+        if (Array.isArray(data.analysis_steps) && data.analysis_steps.length > 0) {
+          const analysisMessages: Message[] = data.analysis_steps.map((step: any) => ({
+            id: Date.now() + Math.random(),
+            text: step.message,
             isUser: false,
-            timestamp: new Date().toISOString()
-          }]);
-          
-          if (backendData.session_id) {
-            setSessionId(backendData.session_id);
-          }
+            timestamp: new Date().toISOString(),
+            type: 'analysis',
+            step: step.step,
+          }));
+          setMessages(prev => [...prev, ...analysisMessages]);
         }
-      } else if (data.message) {
-        // Fallback cho response đơn giản
+
+        if (data.session_id) setSessionId(data.session_id);
+
+        // 3. Prepare and show the preference modal
+        if (data.cooking_method_prompt) {
+          setPreferencePrompt({
+            // emotionPrompt: data.emotion_prompt, // No longer needed
+            cookingMethodPrompt: data.cooking_method_prompt,
+          });
+          // Don't show modal immediately, show continue button instead
+          setShowContinueButton(true);
+        }
+        return;
+      }
+      
+      if (data.message) {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: `[DEBUG] Fallback: ${typeof data.message === 'object' ? JSON.stringify(data.message) : data.message}`,
+          isUser: false,
+          timestamp: new Date().toISOString(),
+          type: 'message'
+        }]);
+      }
+
+    } catch (error: any) {
+      console.error('Error in processUserMessage:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: `Lỗi: ${error.message}`,
+        isUser: false,
+        timestamp: new Date().toISOString(),
+        type: 'message'
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const sendPreferencesToBackend = async (methods: string[]) => { // Removed emotion
+    if (!sessionId) {
+      console.error('Cannot send preferences without a session ID.');
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: 'Lỗi: Mất phiên làm việc. Vui lòng thử lại từ đầu.',
+        isUser: false,
+        timestamp: new Date().toISOString(),
+        type: 'message'
+      }]);
+      return;
+    }
+
+    try {
+      // FE calls its own API route
+      const response = await axios.post('/api/ai/langgraph/process-cooking', {
+        session_id: sessionId,
+        cooking_methods: methods,
+      }
+      // No headers needed here anymore, the API route handles it
+      );
+      
+      const data = response.data;
+      if (data.status === 'success' && data.message) {
         setMessages(prev => [...prev, {
           id: Date.now(),
           text: data.message,
           isUser: false,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          type: 'message'
         }]);
-      }
-    } catch (error: any) {
-      console.error('Error sending message:', error);
-      
-      let errorMessage = "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Backend service is not available')) {
-          errorMessage = "Dịch vụ AI hiện không khả dụng. Vui lòng thử lại sau.";
-        } else if (error.message.includes('ECONNREFUSED')) {
-          errorMessage = "Không thể kết nối đến server AI. Vui lòng kiểm tra kết nối mạng.";
-        } else if (error.message.includes('Failed to fetch')) {
-          errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: errorMessage,
-        isUser: false,
-        timestamp: new Date().toISOString()
-      }]);
-    }
-  };
-
-  const sendPreferencesToBackend = async (emotion: string, methods: string[]) => {
-    try {
-      const response = await axios.post('/api/ai/langgraph/process-emotion-cooking', {
-        message: messages[messages.length - 1]?.text || '',
-        emotion: emotion,
-        cooking_methods: methods,
-        session_id: sessionId
-      });
-
-      if (response.data.status==="success") {
+      } else {
         setMessages(prev => [...prev, {
           id: Date.now(),
-          text: response.data.message,
+          text: data.message || "Không tìm thấy món ăn nào phù hợp.",
           isUser: false,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          type: 'message'
         }]);
       }
-
-      // Lưu session_id nếu backend trả về
-      if (response.data.session_id) {
-        setSessionId(response.data.session_id);
-      }
     } catch (error) {
-      console.error('Error sending preferences:', error);
+      console.error('Error in sendPreferencesToBackend:', error);
       setMessages(prev => [...prev, {
         id: Date.now(),
-        text: "Xin lỗi, có lỗi xảy ra khi xử lý thông tin. Vui lòng thử lại.",
+        text: "Có lỗi xảy ra khi xử lý lựa chọn của bạn.",
         isUser: false,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: 'message'
       }]);
     }
   };
 
-  const handlePreferenceConfirm = async (emotion: string, methods: string[]) => {
-    setSelectedEmotion(emotion);
-    setSelectedMethods(methods);
+  const handlePreferenceConfirm = async (methods: string[]) => { // Removed emotion
     setShowPreferenceModal(false);
-    await sendPreferencesToBackend(emotion, methods);
+    setIsTyping(true);
+    await sendPreferencesToBackend(methods); // Removed emotion
+    setIsTyping(false);
   };
 
   const handlePreferenceCancel = async () => {
     setShowPreferenceModal(false);
-    // Gửi giá trị mặc định khi user cancel
-    await sendPreferencesToBackend("Bình thường", [
-      'Gỏi', 'Luộc', 'Súp', 'Nướng', 'Hấp', 'Chiên', 'Xào', "Quay"
-    ]);
+    setShowContinueButton(false); // Also hide on cancel
+    const defaultMethods = preferencePrompt?.cookingMethodPrompt?.options || ['Hấp', 'Luộc'];
+    
+    setMessages(prev => [...prev, {
+      id: Date.now(),
+      text: `Bạn đã không chọn. Hệ thống sẽ tiếp tục với lựa chọn mặc định...`,
+      isUser: false,
+      timestamp: new Date().toISOString(),
+      type: 'message'
+    }]);
+
+    setIsTyping(true);
+    await sendPreferencesToBackend(defaultMethods); // Removed emotion
+    setIsTyping(false);
   };
-
-  const saveChatToDatabase = async (chatMessages: any[]) => {
-    if (!session?.user?.email || chatMessages.length <= 1) return;
-
-    setIsSaving(true);
-    try {
-      const response = await axios.post('/api/chat', {
-        title: chatMessages[1]?.text?.substring(0, 50) || 'Chat mới',
-        messages: chatMessages,
-        sessionId: sessionId
-      });
-
-      if (response.data._id && !currentChatId) {
-        setCurrentChatId(response.data._id);
-      }
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Error saving chat:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleQuickQuestion = (question: string) => {
-    handleSendMessage(question);
-  };
-
-  const handleSelectChat = (chat: ChatHistoryItem) => {
-    setCurrentChatId(chat._id);
-    setMessages(chat.messages);
-    // Lấy session_id từ chat object (đã load từ MongoDB)
-    setSessionId(chat.sessionId || null);
-    setShowQuickQuestions(false);
-    setSidebarOpen(false);
-  };
-
-  const handleNewChat = () => {
-    setCurrentChatId(undefined);
-    setSessionId(null); // Reset session khi tạo chat mới
-    setMessages([
-      { id: 1, text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString() },
-    ]);
-    setShowQuickQuestions(true);
-    setSidebarOpen(false);
-  };
-
-  const handleSelectFood = (food: string) => {
-    console.log('User selected food:', food);
-    // Có thể gửi tin nhắn mới với món ăn được chọn
-    handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`);
-  };
-
-  // Sửa lại handleSendMessage để gọi hàm mới
+  
   const handleSendMessage = async (text: string) => {
     setShowQuickQuestions(false);
-    
-    const newUserMessage = {
+    setShowContinueButton(false); // Hide button on new message
+    const newUserMessage: Message = {
       id: Date.now(),
       text: text,
       isUser: true,
       timestamp: new Date().toISOString(),
+      type: 'message',
     };
     setMessages(prev => [...prev, newUserMessage]);
     setIsTyping(true);
-    
-    await processUserMessage(text); // Gọi hàm đã đổi tên
-    setIsTyping(false);
+    await processUserMessage(text);
   };
+  
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen font-sans bg-cream-primary dark:bg-dark-bg">
-      {/* Header */}
       <Header />
-      
-      {/* Sidebar - Fixed */}
       <ChatSidebar
-        onSelectChat={handleSelectChat}
-        onNewChat={handleNewChat}
+        onSelectChat={(chat) => {
+          setCurrentChatId(chat._id);
+          setMessages(chat.messages);
+          setSessionId(chat.sessionId || null);
+          setShowQuickQuestions(false);
+          setSidebarOpen(false);
+        }}
+        onNewChat={() => {
+          setCurrentChatId(undefined);
+          setSessionId(null);
+          setMessages([{ id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString(), type: 'message' }]);
+          setShowQuickQuestions(true);
+          setSidebarOpen(false);
+        }}
         currentChatId={currentChatId}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-
-      {/* Main chat area - with margin for fixed sidebar */}
       <div className="flex-1 flex flex-col lg:ml-80">
-        {/* Chat header with menu button */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-6 bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700"
-        >
+        <div className="flex items-center justify-between p-6 bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors rounded-lg hover:bg-orange-primary/10"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2">
+              <Sparkles className="w-6 h-6" />
             </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-brown-primary dark:text-dark-text">TastyMind</h1>
-                <p className="text-sm text-brown-primary/70 dark:text-dark-text-secondary">Sẵn sàng hỗ trợ bạn</p>
-              </div>
-            </div>
+            <h1 className="text-xl font-bold">TastyMind</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-green-600 dark:text-green-400 font-medium">Online</span>
-            {isSaving && (
-              <div className="flex items-center gap-1 text-orange-primary">
-                <div className="w-3 h-3 border-2 border-orange-primary border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-xs">Đang lưu...</span>
-              </div>
-            )}
-            {lastSaved && !isSaving && (
-              <div className="flex items-center gap-1 text-brown-primary/60 dark:text-dark-text-secondary">
-                <span className="text-xs">Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Chat window */}
+        </div>
         <div className="flex-1 bg-gradient-to-b from-white-primary/50 to-cream-primary/30 dark:from-dark-card/50 dark:to-dark-bg/30">
           <ChatWindow>
             <AnimatePresence>
               {messages.map((msg, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                >
-                  <MessageBubble message={msg.text} isUser={msg.isUser} onSelectFood={handleSelectFood} />
-                </motion.div>
+                <div key={msg.id}>
+                  {msg.type === 'analysis' ? (
+                    <AnalysisStep step={msg.step || 'default'} message={msg.text} />
+                  ) : (
+                    <MessageBubble message={msg.text} isUser={msg.isUser} onSelectFood={(food) => handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`)} />
+                  )}
+                </div>
               ))}
             </AnimatePresence>
-            
             {isTyping && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
-              >
-                <div className="flex flex-row items-end gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary text-white-primary shadow-lg flex items-center justify-center text-sm font-bold">
-                    AI
-                  </div>
-                  <div className="px-6 py-4 rounded-2xl bg-white-primary dark:bg-dark-card border border-gray-200 dark:border-gray-700 shadow-lg max-w-sm">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
+                <div className="flex items-end gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary shadow-lg font-bold">AI</div>
+                  <div className="px-6 py-4 rounded-2xl bg-white-primary dark:bg-dark-card border shadow-lg">
                     <div className="flex space-x-2">
                       <div className="w-3 h-3 bg-orange-primary rounded-full animate-bounce"></div>
-                      <div className="w-3 h-3 bg-orange-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-3 h-3 bg-orange-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-3 h-3 bg-orange-primary rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                      <div className="w-3 h-3 bg-orange-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
                     </div>
                   </div>
                 </div>
               </motion.div>
             )}
+            <QuickQuestions onSelectQuestion={handleSendMessage} isVisible={showQuickQuestions && messages.length <= 1} />
             
-            <QuickQuestions 
-              onSelectQuestion={handleQuickQuestion} 
-              isVisible={showQuickQuestions && messages.length === 1} 
-            />
+            {/* New Continue Button */}
+            {showContinueButton && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center p-4">
+                <button
+                  onClick={() => {
+                    setShowContinueButton(false);
+                    setShowPreferenceModal(true);
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+                >
+                  Tiếp tục
+                </button>
+              </motion.div>
+            )}
           </ChatWindow>
         </div>
-
-        {/* Chat input */}
         <div className='bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700'>
           <ChatInput onSendMessage={handleSendMessage} />
         </div>
       </div>
-
-      {/* AI Status */}
-      <AIStatus 
-        isLoading={aiLoading} 
-        error={aiError} 
-        onClearError={() => { clearError(); }} 
-      />
-
-      {/* Modals */}
+      <AIStatus isLoading={aiLoading} error={aiError} onClearError={clearError} />
       <AnimatePresence>
         {showPreferenceModal && preferencePrompt && (
           <PreferenceModal
             open={showPreferenceModal}
-            emotions={preferencePrompt.emotionPrompt?.emotions || []}
-            methods={preferencePrompt.cookingMethodPrompt?.cooking_methods || []}
+            // emotionPrompt={preferencePrompt.emotionPrompt} // No longer needed
+            cookingMethodPrompt={preferencePrompt.cookingMethodPrompt}
             onConfirm={handlePreferenceConfirm}
             onCancel={handlePreferenceCancel}
           />

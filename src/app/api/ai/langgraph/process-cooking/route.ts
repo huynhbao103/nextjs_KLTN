@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Create JWT token for the backend, just like other routes
+    // Create JWT token for the backend
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     
     const tokenPayload = { 
@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    // Forward the request to the actual backend with the new token
+    // Forward the request to the backend
     const response = await axios.post(
-      `${BE_URL}/langgraph/process`,
+      `${BE_URL}/langgraph/process-cooking`,
       body,
       { 
         headers: {
@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response.data);
 
   } catch (error: any) {
-    console.error('Error in /api/ai/langgraph/process:', error.message);
+    console.error('Error in /api/ai/langgraph/process-cooking:', error.message);
     if (error.response) {
       return NextResponse.json(error.response.data, { status: error.response.status });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+} 
