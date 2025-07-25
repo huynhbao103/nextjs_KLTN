@@ -21,6 +21,8 @@ import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useWeather } from '@/hooks/useWeather';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import AnalysisStep from '@/components/chat/AnalysisStep'; // Import the new component
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 // Define message types
 interface Message {
@@ -96,6 +98,13 @@ export default function HomePage() {
   const weatherContext = useWeatherContext(temp);
   const timeOfDay = useTimeOfDay();
 
+  // Modal hỏi context filter
+  const [showContextFilterModal, setShowContextFilterModal] = useState(false);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [pendingWeather, setPendingWeather] = useState<string | null>(null);
+  const [pendingTimeOfDay, setPendingTimeOfDay] = useState<string | null>(null);
+  const [pendingIgnoreContext, setPendingIgnoreContext] = useState<boolean | null>(null);
+
   // Authentication check
   useEffect(() => {
     if (status === 'loading') return;
@@ -167,7 +176,7 @@ export default function HomePage() {
       if (data.message) {
         setMessages(prev => [...prev, {
           id: Date.now(),
-          text: `[DEBUG] Fallback: ${typeof data.message === 'object' ? JSON.stringify(data.message) : data.message}`,
+          text: ` ${typeof data.message === 'object' ? JSON.stringify(data.message) : data.message}`,
           isUser: false,
           timestamp: new Date().toISOString(),
           type: 'message'
@@ -185,6 +194,74 @@ export default function HomePage() {
       }]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  // Hàm gọi API với ignore_context_filter
+  const processUserMessageWithContextFilter = async (
+    question: string,
+    weather: string | null,
+    timeOfDayStr: string | null,
+    ignoreContext: boolean
+  ) => {
+    try {
+      const body: any = {
+        question: question.trim(),
+        weather,
+        time_of_day: timeOfDayStr,
+        session_id: '',
+      };
+      if (ignoreContext) body.ignore_context_filter = true;
+      const response = await fetch('/api/ai/langgraph/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      let data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to process initial request');
+      if (typeof data.message === 'string') {
+        try {
+          const parsedMessage = JSON.parse(data.message);
+          if (parsedMessage && parsedMessage.status) data = parsedMessage;
+        } catch (e) { /* Not a JSON string, proceed */ }
+      }
+      if (data.status === 'analysis_complete' && data.analysis_steps) {
+        if (Array.isArray(data.analysis_steps) && data.analysis_steps.length > 0) {
+          const analysisMessages: Message[] = data.analysis_steps.map((step: any) => ({
+            id: Date.now() + Math.random(),
+            text: step.message,
+            isUser: false,
+            timestamp: new Date().toISOString(),
+            type: 'analysis',
+            step: step.step,
+          }));
+          setMessages(prev => [...prev, ...analysisMessages]);
+        }
+        if (data.session_id) setSessionId(data.session_id);
+        if (data.cooking_method_prompt) {
+          setPreferencePrompt({ cookingMethodPrompt: data.cooking_method_prompt });
+          setShowContinueButton(true);
+        }
+        return;
+      }
+      if (data.message) {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: ` ${typeof data.message === 'object' ? JSON.stringify(data.message) : data.message}`,
+          isUser: false,
+          timestamp: new Date().toISOString(),
+          type: 'message'
+        }]);
+      }
+    } catch (error: any) {
+      console.error('Error in processUserMessageWithContextFilter:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: `Lỗi: ${error.message}`,
+        isUser: false,
+        timestamp: new Date().toISOString(),
+        type: 'message'
+      }]);
     }
   };
 
@@ -265,6 +342,7 @@ export default function HomePage() {
     setIsTyping(false);
   };
   
+  // Sửa handleSendMessage để show modal context filter
   const handleSendMessage = async (text: string) => {
     setShowQuickQuestions(false);
     setShowContinueButton(false); // Hide button on new message
@@ -276,8 +354,41 @@ export default function HomePage() {
       type: 'message',
     };
     setMessages(prev => [...prev, newUserMessage]);
+    // Nếu đã có sessionId thì gửi thẳng, không hiện modal nữa
+    if (sessionId) {
+      setIsTyping(true);
+      await processUserMessageWithContextFilter(
+        text,
+        weatherContext?.name?.trim() || null,
+        timeOfDay?.trim() || null,
+        false // luôn dùng context khi đã có session
+      );
+      setIsTyping(false);
+      return;
+    }
+    // Lưu lại pending question và context, show modal
+    setPendingQuestion(text);
+    setPendingWeather(weatherContext?.name?.trim() || null);
+    setPendingTimeOfDay(timeOfDay?.trim() || null);
+    setShowContextFilterModal(true);
+  };
+
+  // Hàm xử lý sau khi user chọn context filter
+  const handleContextFilterChoice = async (ignoreContext: boolean) => {
+    setShowContextFilterModal(false);
     setIsTyping(true);
-    await processUserMessage(text);
+    // Gọi processUserMessage với ignore_context_filter
+    await processUserMessageWithContextFilter(
+      pendingQuestion || '',
+      pendingWeather,
+      pendingTimeOfDay,
+      ignoreContext
+    );
+    setIsTyping(false);
+    setPendingQuestion(null);
+    setPendingWeather(null);
+    setPendingTimeOfDay(null);
+    setPendingIgnoreContext(null);
   };
   
   if (status === 'loading') {
@@ -378,6 +489,52 @@ export default function HomePage() {
             onConfirm={handlePreferenceConfirm}
             onCancel={handlePreferenceCancel}
           />
+        )}
+      </AnimatePresence>
+      {/* Modal hỏi context filter */}
+      <AnimatePresence>
+        {showContextFilterModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 40 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+              className="bg-white-primary dark:bg-dark-card p-8 rounded-3xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 relative"
+            >
+              <CardHeader className="text-center mb-4">
+                <CardTitle className="text-2xl font-bold text-brown-primary dark:text-dark-text mb-2">
+                  Bạn muốn cá nhân hóa gợi ý món ăn?
+                </CardTitle>
+                <CardContent>
+                  <p className="text-brown-primary/70 dark:text-dark-text-secondary text-base">
+                    Thời tiết giúp cá nhân hóa gợi ý món ăn dựa trên thời điểm hiện tại của bạn để lọc ra các cách chế biến phù hợp<br/>
+                    Bạn có muốn dùng thêm thời tiết để lọc món ăn không?
+                  </p>
+                </CardContent>
+              </CardHeader>
+              <CardFooter className="flex justify-center gap-4 mt-6">
+                <Button
+                  onClick={() => handleContextFilterChoice(false)}
+                  className="px-3 py-3 bg-gradient-to-r from-orange-400 to-green-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-green-500 transition-all"
+                >
+                  Có, dùng thời tiết
+                </Button>
+                <Button
+                  onClick={() => handleContextFilterChoice(true)}
+                  variant="outline"
+                  className="px-3 py-3 text-brown-primary/80 dark:text-dark-text-secondary hover:text-brown-primary dark:hover:text-dark-text text-lg font-semibold border"
+                >
+                  Không, bỏ qua thời tiết
+                </Button>
+              </CardFooter>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
