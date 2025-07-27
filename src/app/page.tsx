@@ -78,7 +78,7 @@ export default function HomePage() {
                   <br />
                   <span className="text-brown-primary dark:text-dark-text">Món Ngon</span>
                   <br />
-                  <span className="text-green-primary dark:text-green-primary">Với AI</span>
+                
                 </motion.h1>
                 
                 <motion.p

@@ -72,11 +72,6 @@ export default function footer() {
           <p className="text-white-primary/70 mb-8">
             Khám phá thế giới ẩm thực
           </p>
-          <div className="flex items-center justify-center space-x-8">
-            <a href="#" className="hover:text-orange-primary transition-colors">Điều khoản</a>
-            <a href="#" className="hover:text-orange-primary transition-colors">Bảo mật</a>
-            <a href="#" className="hover:text-orange-primary transition-colors">Liên hệ</a>
-          </div>
         </div>
       </footer>
     </div>

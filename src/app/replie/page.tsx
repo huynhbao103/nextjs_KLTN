@@ -422,14 +422,6 @@ export default function HomePage() {
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col lg:ml-80">
-        <div className="flex items-center justify-between p-6 bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2">
-              <Sparkles className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-bold">TastyMind</h1>
-          </div>
-        </div>
         <div className="flex-1 bg-gradient-to-b from-white-primary/50 to-cream-primary/30 dark:from-dark-card/50 dark:to-dark-bg/30">
           <ChatWindow>
             <AnimatePresence>
@@ -438,7 +430,11 @@ export default function HomePage() {
                   {msg.type === 'analysis' ? (
                     <AnalysisStep step={msg.step || 'default'} message={msg.text} />
                   ) : (
-                    <MessageBubble message={msg.text} isUser={msg.isUser} onSelectFood={(food) => handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`)} />
+                    <MessageBubble 
+                      message={msg.text} 
+                      isUser={msg.isUser} 
+                      onSelectFood={(food) => handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`)}
+                    />
                   )}
                 </div>
               ))}

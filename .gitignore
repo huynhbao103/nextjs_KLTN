@@ -16,3 +16,14 @@ node_modules
 .next/cache/
  
  package-lock.json
+
+# Ẩn thư mục admin khi deploy
+src/app/admin/
+src/app/admin/dishes/
+src/app/admin/dishes/import/
+src/app/admin/dishes/page.tsx
+src/app/admin/dishes/import/page.tsx
+
+# Hoặc ẩn toàn bộ thư mục admin
+# src/app/admin/
+ 
