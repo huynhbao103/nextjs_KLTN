@@ -13,23 +13,61 @@
     @apply bg-cream-primary dark:bg-dark-bg;
     padding-top: 80px; /* Compensate for fixed header */
   }
+
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-orange-primary/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-orange-primary/50;
+  }
 }
 
 @layer components {
   .food-card {
-    @apply bg-white-primary dark:bg-dark-card rounded-2xl shadow-lg overflow-hidden;
+    @apply bg-white-primary/90 dark:bg-dark-card/90 backdrop-blur-md rounded-2xl shadow-lg border border-orange-primary/20 dark:border-orange-primary/10 overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105;
   }
   
   .btn-primary {
-    @apply bg-orange-primary hover:bg-orange-primary/90 text-white-primary px-8 py-4 rounded-full font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-lg;
+    @apply bg-gradient-to-r from-orange-primary to-green-primary hover:from-orange-primary/90 hover:to-green-primary/90 text-white-primary px-8 py-4 rounded-full font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-to-r from-brown-primary to-orange-primary hover:from-brown-primary/90 hover:to-orange-primary/90 text-white-primary px-6 py-3 rounded-xl font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-primary focus:ring-offset-2;
+  }
+
+  .btn-outline {
+    @apply border-2 border-orange-primary text-orange-primary hover:bg-orange-primary hover:text-white-primary px-6 py-3 rounded-xl font-semibold transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2;
   }
   
   .gradient-text {
     @apply bg-gradient-to-r from-brown-primary via-orange-primary to-green-primary bg-clip-text text-transparent;
   }
+
+  .gradient-bg {
+    @apply bg-gradient-to-br from-cream-primary via-white-primary to-orange-primary/10 dark:from-dark-bg dark:via-dark-card dark:to-orange-primary/5;
+  }
+
+  .card-glass {
+    @apply bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-md border border-orange-primary/20 dark:border-orange-primary/10 rounded-2xl shadow-xl;
+  }
   
   .floating-food {
     animation: float 3s ease-in-out infinite;
+  }
+
+  .floating-food-delayed {
+    animation: float 3s ease-in-out infinite;
+    animation-delay: 1.5s;
   }
   
   .mouse-trail {
@@ -42,6 +80,51 @@
     z-index: 9999;
     transform: translate(-50%, -50%);
     transition: all 0.1s ease;
+  }
+
+  /* Input styles */
+  .input-primary {
+    @apply block w-full px-4 py-3 border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl bg-white-primary/50 dark:bg-dark-bg/50 text-brown-primary dark:text-dark-text placeholder-brown-primary/50 dark:placeholder-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-orange-primary focus:border-transparent transition-all duration-300;
+  }
+
+  /* Loading spinner */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-orange-primary/20 border-t-orange-primary;
+  }
+
+  /* Pulse animation for highlights */
+  .pulse-orange {
+    animation: pulse-orange 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-orange {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Bounce animation */
+  .bounce-slow {
+    animation: bounce 2s infinite;
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 }
 
@@ -81,6 +164,34 @@
   .scrollbar-thin:hover::-webkit-scrollbar-thumb {
     background-color: rgba(210, 100, 38, 0.5);
   }
+
+  /* Text utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-brown-primary via-orange-primary to-green-primary bg-clip-text text-transparent;
+  }
+
+  /* Background utilities */
+  .bg-gradient-primary {
+    @apply bg-gradient-to-br from-cream-primary via-white-primary to-orange-primary/10;
+  }
+
+  .bg-gradient-dark {
+    @apply bg-gradient-to-br from-dark-bg via-dark-card to-orange-primary/5;
+  }
+
+  /* Border utilities */
+  .border-gradient {
+    border-image: linear-gradient(45deg, #74493D, #D26426, #3c603c) 1;
+  }
+
+  /* Shadow utilities */
+  .shadow-orange {
+    box-shadow: 0 4px 14px 0 rgba(210, 100, 38, 0.2);
+  }
+
+  .shadow-orange-lg {
+    box-shadow: 0 10px 25px 0 rgba(210, 100, 38, 0.3);
+  }
 }
 
 @keyframes float {
@@ -103,10 +214,92 @@
   }
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .fade-in-up {
   animation: fadeInUp 0.6s ease-out;
 }
 
+.fade-in-down {
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.fade-in-left {
+  animation: fadeInLeft 0.6s ease-out;
+}
+
+.fade-in-right {
+  animation: fadeInRight 0.6s ease-out;
+}
+
 .perspective-1000 {
   perspective: 1000px;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-orange-primary/20 text-brown-primary;
+}
+
+::-moz-selection {
+  @apply bg-orange-primary/20 text-brown-primary;
 } 

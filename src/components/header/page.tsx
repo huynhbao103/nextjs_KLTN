@@ -15,7 +15,7 @@ const mobileMenuVariants = {
     opacity: 0,
     height: 0,
     transition: {
-      duration: 1,
+      duration: 0.3,
       ease: "easeInOut"
     }
   },
@@ -23,7 +23,7 @@ const mobileMenuVariants = {
     opacity: 1,
     height: "auto",
     transition: {
-      duration: 1,
+      duration: 0.3,
       ease: "easeInOut"
     }
   }
@@ -117,15 +117,15 @@ export default function Header() {
 
   return (
     <motion.header 
-      className="bg-white-primary dark:bg-dark-card shadow-md transition-colors duration-300 fixed top-0 left-0 right-0 z-50"
+      className="bg-white-primary/95 dark:bg-dark-card/95 backdrop-blur-md shadow-lg border-b border-orange-primary/20 dark:border-orange-primary/10 transition-all duration-300 fixed top-0 left-0 right-0 z-50"
       onKeyDown={handleKeyDown}
       role="banner"
       aria-label="Main navigation"
-      initial={{ y: 0 }}
+      initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ 
-        duration: 0.3,
-        ease: "easeInOut"
+        duration: 0.5,
+        ease: "easeOut"
       }}
     >
       <div className="px-4 sm:px-6 py-3 sm:py-4">
@@ -139,7 +139,7 @@ export default function Header() {
           >
             <Link 
               href="/" 
-              className="flex items-center focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg transition-all duration-200"
+              className="flex items-center focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg transition-all duration-200 hover:scale-105"
               aria-label="Go to homepage"
             >
               <div className="relative w-20 h-12 sm:w-24 sm:h-16 flex items-center justify-center">
@@ -164,21 +164,21 @@ export default function Header() {
           >
             <Link 
               href="/" 
-              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
               aria-label="Go to homepage"
             >
               Trang chủ
             </Link>
             <Link 
               href="/replie" 
-              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
               aria-label="Explore food recommendations"
             >
               Khám phá
             </Link>
             <Link 
               href="/forus" 
-              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+              className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
               aria-label="About us"
             >
               Về chúng tôi
@@ -187,11 +187,11 @@ export default function Header() {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2"
+              className="p-2 rounded-full hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 hover:scale-110"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
               {theme === 'dark' ? (
-                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-dark-text" />
+                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-orange-primary" />
               ) : (
                 <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-brown-primary" />
               )}
@@ -199,12 +199,12 @@ export default function Header() {
             
             {/* User Menu */}
             {isLoading ? (
-              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-primary/20 to-green-primary/20 animate-pulse" />
             ) : session ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={handleDropdownClick}
-                  className="flex items-center space-x-2 bg-white dark:bg-dark-card p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-bg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-orange-primary/10 to-green-primary/10 dark:from-orange-primary/20 dark:to-green-primary/20 p-2 rounded-full hover:from-orange-primary/20 hover:to-green-primary/20 dark:hover:from-orange-primary/30 dark:hover:to-green-primary/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 hover:scale-105"
                   aria-label="User menu"
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
@@ -215,11 +215,11 @@ export default function Header() {
                       alt={session.user.name || 'User avatar'}
                       width={40}
                       height={40}
-                      className="rounded-full"
+                      className="rounded-full border-2 border-orange-primary/30"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary font-bold">
+                      {session.user?.name?.[0] || session.user.email?.[0] || 'U'}
                     </div>
                   )}
                   <span className="text-brown-primary dark:text-dark-text font-medium hidden lg:block">
@@ -237,13 +237,13 @@ export default function Header() {
                       initial="closed"
                       animate="open"
                       exit="closed"
-                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-card rounded-lg shadow-lg py-2 z-50 border border-gray-200 dark:border-gray-700"
+                      className="absolute right-0 mt-2 w-48 bg-white-primary/95 dark:bg-dark-card/95 backdrop-blur-md rounded-xl shadow-xl py-2 z-50 border border-orange-primary/20 dark:border-orange-primary/10"
                       role="menu"
                       aria-orientation="vertical"
                     >
                       <Link
                         href="/profile"
-                        className="flex items-center space-x-2 px-4 py-2 text-brown-primary dark:text-dark-text hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:bg-gray-100 dark:focus:bg-dark-bg"
+                        className="flex items-center space-x-2 px-4 py-2 text-brown-primary dark:text-dark-text hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 transition-all duration-300 focus:outline-none focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 rounded-lg mx-2"
                         onClick={handleMenuItemClick}
                         role="menuitem"
                       >
@@ -252,7 +252,7 @@ export default function Header() {
                       </Link>
                       <Link
                         href="/settings"
-                        className="flex items-center space-x-2 px-4 py-2 text-brown-primary dark:text-dark-text hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:bg-gray-100 dark:focus:bg-dark-bg"
+                        className="flex items-center space-x-2 px-4 py-2 text-brown-primary dark:text-dark-text hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 transition-all duration-300 focus:outline-none focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 rounded-lg mx-2"
                         onClick={handleMenuItemClick}
                         role="menuitem"
                       >
@@ -261,7 +261,7 @@ export default function Header() {
                       </Link>
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-100"
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 focus:outline-none focus:bg-red-50 dark:focus:bg-red-900/20 rounded-lg mx-2"
                         role="menuitem"
                       >
                         <LogOut className="w-4 h-4" />
@@ -274,7 +274,7 @@ export default function Header() {
             ) : (
               <Link 
                 href="/login" 
-                className="bg-green-primary dark:bg-green-primary text-white-primary px-4 sm:px-6 py-2 rounded-full hover:bg-green-primary/90 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-primary focus:ring-offset-2 font-semibold"
+                className="bg-gradient-to-r from-orange-primary to-green-primary text-white-primary px-6 py-3 rounded-full hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 font-semibold shadow-lg hover:shadow-xl"
                 aria-label="Sign in to your account"
               >
                 Đăng nhập
@@ -286,11 +286,11 @@ export default function Header() {
           <div className="md:hidden flex items-center space-x-2 sm:space-x-4">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2"
+              className="p-2 rounded-full hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 hover:scale-110"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
               {theme === 'dark' ? (
-                <Sun className="w-5 h-5 text-dark-text" />
+                <Sun className="w-5 h-5 text-orange-primary" />
               ) : (
                 <Moon className="w-5 h-5 text-brown-primary" />
               )}
@@ -298,7 +298,7 @@ export default function Header() {
             
             <button
               onClick={toggleMobileMenu}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-dark-bg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2"
+              className="p-2 rounded-full hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 hover:scale-110"
               aria-label="Toggle mobile menu"
               aria-expanded={isMobileMenuOpen}
             >
@@ -320,22 +320,22 @@ export default function Header() {
               initial="closed"
               animate="open"
               exit="closed"
-              className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-700"
+              className="md:hidden mt-4 pb-4 border-t border-orange-primary/20 dark:border-orange-primary/10"
               role="navigation"
               aria-label="Mobile navigation"
             >
               <div className="flex flex-col space-y-3 pt-4">
                 <Link 
                   href="/" 
-                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                   onClick={handleMenuItemClick}
                   aria-label="Go to homepage"
                 >
                   Trang chủ
                 </Link>
                 <Link 
-                  href="/profile" 
-                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+                  href="/replie" 
+                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                   onClick={handleMenuItemClick}
                   aria-label="Explore food recommendations"
                 >
@@ -343,7 +343,7 @@ export default function Header() {
                 </Link>
                 <Link 
                   href="/forus" 
-                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2 py-1"
+                  className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                   onClick={handleMenuItemClick}
                   aria-label="About us"
                 >
@@ -351,11 +351,11 @@ export default function Header() {
                 </Link>
                 
                 {isLoading ? (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="w-32 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  <div className="pt-4 border-t border-orange-primary/20 dark:border-orange-primary/10">
+                    <div className="w-32 h-4 bg-gradient-to-r from-orange-primary/20 to-green-primary/20 rounded animate-pulse" />
                   </div>
                 ) : session ? (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 border-t border-orange-primary/20 dark:border-orange-primary/10">
                     <div className="flex items-center space-x-3 mb-4">
                       {session.user?.image ? (
                         <Image
@@ -363,11 +363,11 @@ export default function Header() {
                           alt={session.user.name || 'User avatar'}
                           width={40}
                           height={40}
-                          className="rounded-full"
+                          className="rounded-full border-2 border-orange-primary/30"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary font-bold">
+                          {session.user?.name?.[0] || session.user.email?.[0] || 'U'}
                         </div>
                       )}
                       <span className="text-brown-primary dark:text-dark-text font-medium">
@@ -376,7 +376,7 @@ export default function Header() {
                     </div>
                     <Link
                       href="/profile"
-                      className="flex items-center space-x-2 py-2 text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2"
+                      className="flex items-center space-x-2 py-2 text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                       onClick={handleMenuItemClick}
                       aria-label="Update profile"
                     >
@@ -385,7 +385,7 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/settings"
-                      className="flex items-center space-x-2 py-2 text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded px-2"
+                      className="flex items-center space-x-2 py-2 text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                       onClick={handleMenuItemClick}
                       aria-label="Update password"
                     >
@@ -394,7 +394,7 @@ export default function Header() {
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center space-x-2 w-full py-2 text-red-500 hover:text-red-600 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded px-2"
+                      className="flex items-center space-x-2 w-full py-2 text-red-500 hover:text-red-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded-lg px-3 hover:bg-red-50 dark:hover:bg-red-900/20"
                       aria-label="Sign out"
                     >
                       <LogOut className="w-4 h-4" />
@@ -404,7 +404,7 @@ export default function Header() {
                 ) : (
                   <Link 
                     href="/login" 
-                    className="bg-green-primary dark:bg-green-primary text-white-primary px-6 py-3 rounded-full hover:bg-green-primary/90 transition-all duration-300 text-center font-semibold focus:outline-none focus:ring-2 focus:ring-green-primary focus:ring-offset-2"
+                    className="bg-gradient-to-r from-orange-primary to-green-primary text-white-primary px-6 py-3 rounded-full hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 text-center font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 shadow-lg hover:shadow-xl"
                     onClick={handleMenuItemClick}
                     aria-label="Sign in to your account"
                   >

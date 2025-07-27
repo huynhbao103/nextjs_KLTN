@@ -3,16 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/header/page';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import DatePicker from '@/components/ui/date-picker';
-import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
-import { X, Plus, ChevronDown } from 'lucide-react';
+import { 
+  User, 
+  Mail, 
+  Calendar, 
+  Scale, 
+  Ruler, 
+  Heart, 
+  Plus, 
+  X, 
+  Camera, 
+  Save, 
+  Trash2,
+  ChevronDown,
+  Sparkles,
+  Shield,
+  Activity
+} from 'lucide-react';
+import Header from '@/components/header/page';
 
 interface UserData {
   _id: string;
@@ -23,7 +32,7 @@ interface UserData {
   dateOfBirth?: string;
   weight?: number;
   height?: number;
-  activityLevel?: string;
+  allergies?: string[];
   medicalConditions?: string[];
   createdAt: string;
   updatedAt: string;
@@ -35,36 +44,59 @@ const COMMON_MEDICAL_CONDITIONS = [
   'Không có',
   'Đái tháo đường',
   'Cao huyết áp',
- "Bệnh tim mạch vành",
- "Rối loạn lipid máu",
- "Suy tim mãn tính",
- "Xơ vữa động mạch",
- "Viêm phế quản mãn tính",
- "Bệnh phổi tắc nghẽn mạn tính – COPD",
- "Hen phế quản",
- "Suy giáp mãn tính",
- "Đái tháo đường",
- "Rối loạn lipid máu",
- "Bệnh Parkinson",
- "Đa xơ cứng",
- "Động kinh",
- "Rối loạn tâm thần phân liệt",
- "Trầm cảm mãn tính",
- "Rối loạn lo âu kéo dài",
- "Viêm khớp dạng thấp",
- "Thoái hóa khớp",
- "Loãng xương",
- "Viêm gan mạn tính",
- "Xơ gan",
- "Viêm da cơ địa mạn tính",
- "Vảy nến",
- "Suy thận mạn tính",
- "Viêm tuyến tiền liệt mạn tính",
- "Ung thư gan",
- "Ung thư phổi",
- "Ung thư vú",
- "Viêm gan virus B và C mạn tính",
- "Nhiễm HIV/AIDS",
+  "Bệnh tim mạch vành",
+  "Rối loạn lipid máu",
+  "Suy tim mãn tính",
+  "Xơ vữa động mạch",
+  "Viêm phế quản mãn tính",
+  "Bệnh phổi tắc nghẽn mạn tính – COPD",
+  "Hen phế quản",
+  "Suy giáp mãn tính",
+  "Đái tháo đường",
+  "Rối loạn lipid máu",
+  "Bệnh Parkinson",
+  "Đa xơ cứng",
+  "Động kinh",
+  "Rối loạn tâm thần phân liệt",
+  "Trầm cảm mãn tính",
+  "Rối loạn lo âu kéo dài",
+  "Viêm khớp dạng thấp",
+  "Thoái hóa khớp",
+  "Loãng xương",
+  "Viêm gan mạn tính",
+  "Xơ gan",
+  "Viêm da cơ địa mạn tính",
+  "Vảy nến",
+  "Suy thận mạn tính",
+  "Viêm tuyến tiền liệt mạn tính",
+  "Ung thư gan",
+  "Ung thư phổi",
+  "Ung thư vú",
+  "Viêm gan virus B và C mạn tính",
+  "Nhiễm HIV/AIDS",
+];
+
+const COMMON_ALLERGIES = [
+  'Không có',
+  'Đậu phộng',
+  'Hạt cây (hạnh nhân, óc chó, hạt điều)',
+  'Sữa',
+  'Trứng',
+  'Đậu nành',
+  'Lúa mì',
+  'Cá',
+  'Động vật có vỏ (tôm, cua, sò)',
+  'Hạt mè',
+  'Sulfites',
+  'Gluten',
+  'Lactose',
+  'Hải sản',
+  'Thịt bò',
+  'Thịt gà',
+  'Thịt lợn',
+  'Rau củ (cà chua, cà rốt)',
+  'Trái cây (dâu tây, cam, táo)',
+  'Gia vị (ớt, tiêu, tỏi)'
 ];
 
 export default function ProfilePage() {
@@ -77,6 +109,8 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [newCondition, setNewCondition] = useState('');
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
+  const [newAllergy, setNewAllergy] = useState('');
+  const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -85,7 +119,7 @@ export default function ProfilePage() {
     dateOfBirth: '',
     weight: '',
     height: '',
-    activityLevel: '',
+    allergies: [] as string[],
     medicalConditions: [] as string[]
   });
 
@@ -112,6 +146,22 @@ export default function ProfilePage() {
     }
   }, [userData]);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.allergy-dropdown') && !target.closest('.condition-dropdown')) {
+        setShowAllergyDropdown(false);
+        setShowConditionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const fetchUserData = async () => {
     try {
       const response = await fetch('/api/user');
@@ -127,7 +177,7 @@ export default function ProfilePage() {
           dateOfBirth: user.dateOfBirth || '',
           weight: user.weight?.toString() || '',
           height: user.height?.toString() || '',
-          activityLevel: user.activityLevel || '',
+          allergies: user.allergies || [],
           medicalConditions: user.medicalConditions || []
         });
       } else {
@@ -153,10 +203,8 @@ export default function ProfilePage() {
       let updatedConditions: string[];
       
       if (conditionToAdd === 'Không có') {
-        // Nếu chọn "Không có", xóa tất cả bệnh lý khác
         updatedConditions = ['Không có'];
       } else {
-        // Nếu chọn bệnh lý khác, xóa "Không có" và thêm bệnh lý mới
         updatedConditions = formData.medicalConditions
           .filter(c => c !== 'Không có')
           .concat(conditionToAdd);
@@ -178,22 +226,64 @@ export default function ProfilePage() {
     }));
   };
 
+  const addAllergy = (allergy?: string) => {
+    const allergyToAdd = allergy || newAllergy.trim();
+    if (allergyToAdd && !formData.allergies.includes(allergyToAdd)) {
+      let updatedAllergies: string[];
+      
+      if (allergyToAdd === 'Không có') {
+        updatedAllergies = ['Không có'];
+      } else {
+        updatedAllergies = formData.allergies
+          .filter(a => a !== 'Không có')
+          .concat(allergyToAdd);
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        allergies: updatedAllergies
+      }));
+      setNewAllergy('');
+      setShowAllergyDropdown(false);
+    }
+  };
+
+  const removeAllergy = (allergy: string) => {
+    setFormData(prev => ({
+      ...prev,
+      allergies: prev.allergies.filter(a => a !== allergy)
+    }));
+  };
+
   const filteredConditions = COMMON_MEDICAL_CONDITIONS.filter(
     condition => {
-      // Nếu đã chọn "Không có", chỉ hiển thị "Không có"
       if (formData.medicalConditions.includes('Không có')) {
         return condition === 'Không có' && 
                condition.toLowerCase().includes(newCondition.toLowerCase());
       }
       
-      // Nếu đã chọn bệnh lý khác, không hiển thị "Không có"
       if (condition === 'Không có') {
         return false;
       }
       
-      // Hiển thị các bệnh lý khác chưa được chọn
       return !formData.medicalConditions.includes(condition) &&
              condition.toLowerCase().includes(newCondition.toLowerCase());
+    }
+  );
+
+  const filteredAllergies = COMMON_ALLERGIES.filter(
+    allergy => {
+      if (formData.allergies.includes('Không có')) {
+        return allergy === 'Không có' && 
+               allergy.toLowerCase().includes(newAllergy.toLowerCase());
+      }
+      
+      if (allergy === 'Không có') {
+        return false;
+      }
+      
+      return !formData.allergies.includes(allergy) &&
+             allergy.toLowerCase().includes(newAllergy.toLowerCase());
     }
   );
 
@@ -306,22 +396,25 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-cream-primary via-white-primary to-orange-primary/10 dark:from-dark-bg dark:via-dark-card dark:to-orange-primary/5">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Đang tải thông tin...</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="loading-spinner w-12 h-12 mx-auto mb-4"></div>
+            <p className="text-brown-primary/70 dark:text-dark-text-secondary">Đang tải thông tin...</p>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-cream-primary via-white-primary to-orange-primary/10 dark:from-dark-bg dark:via-dark-card dark:to-orange-primary/5">
       <Header />
       <div className="container mx-auto px-4 py-8">
         <motion.div
@@ -329,184 +422,297 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Hồ Sơ Cá Nhân</h1>
-              <p className="text-muted-foreground">
-                Cập nhật thông tin cá nhân để nhận được gợi ý món ăn phù hợp nhất
-              </p>
-              {/* Avatar section */}
-              <div className="flex items-center gap-6 mt-6">
-                <div className="relative w-24 h-24">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar preview"
-                      className="w-24 h-24 rounded-full object-cover border-2 border-primary"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl text-gray-500">
-                      {userData?.name?.[0] || userData?.email?.[0] || 'U'}
-                    </div>
-                  )}
-                  {avatarUploading && (
-                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="block">
-                    <span className="sr-only">Chọn ảnh đại diện</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      onChange={handleAvatarChange}
-                      disabled={avatarUploading}
-                    />
-                  </label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleAvatarUpload}
-                      disabled={!avatarFile || avatarUploading}
-                      className="px-4"
-                    >
-                      {avatarUploading ? 'Đang lưu...' : 'Lưu avatar'}
-                    </Button>
-                    {avatarPreview && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={handleAvatarDelete}
-                        disabled={avatarUploading}
-                        className="px-4"
-                      >
-                        Xóa avatar
-                      </Button>
-                    )}
-                  </div>
-                  {avatarError && <div className="text-red-500 text-sm">{avatarError}</div>}
-                </div>
-              </div>
+          <div className="max-w-6xl mx-auto">
+            {/* Header Section */}
+            <div className="text-center mb-12">
+    
+              <motion.h1 
+                className="text-4xl md:text-5xl font-bold text-brown-primary dark:text-dark-text mb-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                Hồ Sơ Cá Nhân
+              </motion.h1>
+    
             </div>
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600">{error}</p>
+            {/* Avatar Section */}
+            <motion.div 
+              className="card-glass p-8 mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="relative">
+                  {avatarPreview ? (
+                    <motion.img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-orange-primary/20 shadow-xl"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  ) : (
+                    <motion.div 
+                      className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-4xl text-white-primary font-bold shadow-xl"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {userData?.name?.[0] || userData?.email?.[0] || 'U'}
+                    </motion.div>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 bg-white-primary/80 dark:bg-dark-card/80 flex items-center justify-center rounded-full">
+                      <div className="loading-spinner w-8 h-8"></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 space-y-4">
+                  <h3 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+                    Ảnh Đại Diện
+                  </h3>
+                  <p className="text-brown-primary/70 dark:text-dark-text-secondary">
+                    Cập nhật ảnh đại diện để cá nhân hóa hồ sơ của bạn
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <label className="relative cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                        disabled={avatarUploading}
+                      />
+                      <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105">
+                        <Camera className="w-4 h-4" />
+                        Chọn ảnh
+                      </div>
+                    </label>
+                    
+                    {avatarFile && (
+                      <motion.button
+                        type="button"
+                        onClick={handleAvatarUpload}
+                        disabled={avatarUploading}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-primary to-orange-primary text-white-primary rounded-xl hover:from-green-primary/90 hover:to-orange-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Save className="w-4 h-4" />
+                        {avatarUploading ? 'Đang lưu...' : 'Lưu avatar'}
+                      </motion.button>
+                    )}
+                    
+                    {avatarPreview && (
+                      <motion.button
+                        type="button"
+                        onClick={handleAvatarDelete}
+                        disabled={avatarUploading}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white-primary rounded-xl hover:from-red-500/90 hover:to-red-600/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Xóa avatar
+                      </motion.button>
+                    )}
+                  </div>
+                  
+                  {avatarError && (
+                    <motion.div 
+                      className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <p className="text-red-600 dark:text-red-400 text-sm">{avatarError}</p>
+                    </motion.div>
+                  )}
+                </div>
               </div>
+            </motion.div>
+
+            {/* Error/Success Messages */}
+            {error && (
+              <motion.div 
+                className="mb-6 p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-xl"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <p className="text-red-600 dark:text-red-400">{error}</p>
+              </motion.div>
             )}
 
             {success && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-600">{success}</p>
-              </div>
+              <motion.div 
+                className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-xl"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <p className="text-green-600 dark:text-green-400">{success}</p>
+              </motion.div>
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 {/* Thông tin cơ bản */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Thông Tin Cơ Bản</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <motion.div 
+                  className="card-glass p-6"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-white-primary" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+                      Thông Tin Cơ Bản
+                    </h2>
+                  </div>
+                  
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        <Mail className="w-4 h-4 inline mr-2" />
+                        Email
+                      </label>
+                      <input
+                        type="email"
                         value={userData?.email || ''}
                         disabled
-                        className="bg-gray-50"
+                        className="input-primary bg-gray-50 dark:bg-dark-bg/50"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="name">Họ và tên</Label>
-                      <Input
-                        id="name"
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        <User className="w-4 h-4 inline mr-2" />
+                        Họ và tên
+                      </label>
+                      <input
+                        type="text"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="Nhập họ và tên"
+                        className="input-primary"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="gender">Giới tính</Label>
-                      <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn giới tính" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-dark-bg">
-                          <SelectItem value="male">Nam</SelectItem>
-                          <SelectItem value="female">Nữ</SelectItem>
-                          <SelectItem value="other">Khác</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        Giới tính
+                      </label>
+                      <select 
+                        value={formData.gender} 
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                        className="input-primary"
+                      >
+                        <option value="">Chọn giới tính</option>
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                        <option value="other">Khác</option>
+                      </select>
                     </div>
 
                     <div>
-                      <Label htmlFor="dateOfBirth">Ngày sinh</Label>
-                      <DatePicker
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        <Calendar className="w-4 h-4 inline mr-2" />
+                        Ngày sinh
+                      </label>
+                      <input
+                        type="date"
                         value={formData.dateOfBirth}
-                        onChange={(date) => handleInputChange('dateOfBirth', date)}
-                        placeholder="Chọn ngày sinh"
+                        onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                        className="input-primary"
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </motion.div>
 
                 {/* Thông tin thể chất */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Thông Tin Thể Chất</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <motion.div 
+                  className="card-glass p-6"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-primary to-orange-primary rounded-lg flex items-center justify-center">
+                      <Activity className="w-5 h-5 text-white-primary" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+                      Thông Tin Thể Chất
+                    </h2>
+                  </div>
+                  
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="weight">Cân nặng (kg)</Label>
-                      <Input
-                        id="weight"
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        <Scale className="w-4 h-4 inline mr-2" />
+                        Cân nặng (kg)
+                      </label>
+                      <input
                         type="number"
                         value={formData.weight}
                         onChange={(e) => handleInputChange('weight', e.target.value)}
                         placeholder="Nhập cân nặng"
                         min="0"
                         step="0.1"
+                        className="input-primary"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="height">Chiều cao (cm)</Label>
-                      <Input
-                        id="height"
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                        <Ruler className="w-4 h-4 inline mr-2" />
+                        Chiều cao (cm)
+                      </label>
+                      <input
                         type="number"
                         value={formData.height}
                         onChange={(e) => handleInputChange('height', e.target.value)}
                         placeholder="Nhập chiều cao"
                         min="0"
                         step="0.1"
+                        className="input-primary"
                       />
                     </div>
 
-              
-                  </CardContent>
-                </Card>
+
+                  </div>
+                </motion.div>
               </div>
 
               {/* Thông tin bệnh lý */}
-              <Card className="mt-8">
-                <CardHeader>
-                  <CardTitle>Thông Tin Bệnh Lý</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Chọn các bệnh lý để nhận được gợi ý món ăn phù hợp với tình trạng sức khỏe
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <motion.div 
+                className="card-glass p-6 mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-brown-primary to-orange-primary rounded-lg flex items-center justify-center">
+                    <Heart className="w-5 h-5 text-white-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+                      Thông Tin Bệnh Lý
+                    </h2>
+                    <p className="text-brown-primary/70 dark:text-dark-text-secondary">
+                      Chọn các bệnh lý để nhận được gợi ý món ăn phù hợp với tình trạng sức khỏe
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
                   <div className="relative">
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Input
+                        <input
                           value={newCondition}
                           onChange={(e) => {
                             setNewCondition(e.target.value);
@@ -514,6 +720,7 @@ export default function ProfilePage() {
                           }}
                           onFocus={() => setShowConditionDropdown(true)}
                           placeholder="Tìm kiếm hoặc nhập bệnh lý"
+                          className="input-primary"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
@@ -522,116 +729,314 @@ export default function ProfilePage() {
                           }}
                         />
                         {showConditionDropdown && (
-                          <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <div className="condition-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
                             {filteredConditions.length > 0 ? (
                               filteredConditions.map((condition, index) => (
                                 <button
                                   key={index}
                                   type="button"
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none"
+                                  className="w-full text-left p-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 focus:outline-none border-b border-orange-primary/10 last:border-b-0"
                                   onClick={() => addMedicalCondition(condition)}
                                 >
                                   {condition}
                                 </button>
                               ))
                             ) : newCondition.trim() ? (
-                              <div className="px-4 py-2 text-gray-500">
+                              <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
                                 Không tìm thấy bệnh lý. Nhấn Enter để thêm "{newCondition}"
                               </div>
                             ) : (
-                              <div className="px-4 py-2 text-gray-500">
+                              <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
                                 Gõ để tìm kiếm bệnh lý
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-                      <Button
+                      <motion.button
                         type="button"
                         onClick={() => addMedicalCondition()}
                         disabled={!newCondition.trim()}
-                        className="px-4"
+                        className="px-4 py-3 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
                         <Plus className="w-4 h-4" />
-                      </Button>
+                      </motion.button>
                     </div>
                   </div>
 
                   {/* Danh sách bệnh lý phổ biến */}
-                  <div className="space-y-2">
-                    <Label>Bệnh lý phổ biến:</Label>
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
+                      Bệnh lý phổ biến:
+                    </label>
                     
                     {/* Hiển thị "Không có" riêng biệt */}
-                    <div className="mb-3">
-                      <button
+                    <div>
+                      <motion.button
                         type="button"
                         onClick={() => addMedicalCondition('Không có')}
                         disabled={formData.medicalConditions.includes('Không có')}
-                        className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                        className={`px-6 py-3 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
                           formData.medicalConditions.includes('Không có')
-                            ? 'bg-green-100 text-green-700 border-green-200 cursor-not-allowed'
-                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                            ? 'bg-green-primary/20 text-green-primary border-green-primary/30 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-green-primary/10 to-green-primary/20 text-green-primary border-green-primary/30 hover:from-green-primary/20 hover:to-green-primary/30'
                         }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
+                        <Shield className="w-4 h-4 inline mr-2" />
                         Không có
-                      </button>
+                      </motion.button>
                     </div>
 
                     {/* Hiển thị các bệnh lý khác chỉ khi chưa chọn "Không có" */}
                     {!formData.medicalConditions.includes('Không có') && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-3">
                         {COMMON_MEDICAL_CONDITIONS.slice(1, 11).map((condition) => (
-                          <button
+                          <motion.button
                             key={condition}
                             type="button"
                             onClick={() => addMedicalCondition(condition)}
                             disabled={formData.medicalConditions.includes(condition)}
-                            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                            className={`px-4 py-2 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
                               formData.medicalConditions.includes(condition)
-                                ? 'bg-blue-100 text-blue-700 border-blue-200 cursor-not-allowed'
-                                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                ? 'bg-orange-primary/20 text-orange-primary border-orange-primary/30 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-primary/10 to-orange-primary/20 text-orange-primary border-orange-primary/30 hover:from-orange-primary/20 hover:to-orange-primary/30'
                             }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                           >
                             {condition}
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     )}
                   </div>
 
                   {formData.medicalConditions.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Bệnh lý đã chọn:</Label>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
+                        Bệnh lý đã chọn:
+                      </label>
+                      <div className="flex flex-wrap gap-3">
                         {formData.medicalConditions.map((condition, index) => (
-                          <div
+                          <motion.div
                             key={index}
-                            className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                            className="flex items-center gap-2 bg-gradient-to-r from-orange-primary/20 to-green-primary/20 text-orange-primary dark:text-orange-primary border border-orange-primary/30 px-4 py-2 rounded-xl text-sm"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.1 }}
                           >
+                            <Heart className="w-4 h-4" />
                             <span>{condition}</span>
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => removeMedicalCondition(condition)}
-                              className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-1"
+                              className="hover:bg-orange-primary/30 rounded-full p-1 transition-colors"
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.8 }}
                             >
                               <X className="w-3 h-3" />
-                            </button>
-                          </div>
+                            </motion.button>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </motion.div>
 
-              <Separator className="my-8" />
+              {/* Thông tin dị ứng */}
+              <motion.div 
+                className="card-glass p-6 mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-lg flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-white-primary" />
+                    </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+                      Thông Tin Dị Ứng
+                    </h2>
+                    <p className="text-brown-primary/70 dark:text-dark-text-secondary">
+                      Chọn các dị ứng để tránh các món ăn có thể gây phản ứng không mong muốn
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="relative">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          value={newAllergy}
+                          onChange={(e) => {
+                            setNewAllergy(e.target.value);
+                            setShowAllergyDropdown(true);
+                          }}
+                          onFocus={() => setShowAllergyDropdown(true)}
+                          placeholder="Tìm kiếm hoặc nhập dị ứng"
+                          className="input-primary"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addAllergy();
+                            }
+                          }}
+                        />
+                        {showAllergyDropdown && (
+                          <div className="allergy-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
+                            {filteredAllergies.length > 0 ? (
+                              filteredAllergies.map((allergy, index) => (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  className="w-full text-left p-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 focus:outline-none border-b border-orange-primary/10 last:border-b-0"
+                                  onClick={() => addAllergy(allergy)}
+                                >
+                                  {allergy}
+                                </button>
+                              ))
+                            ) : newAllergy.trim() ? (
+                              <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
+                                Không tìm thấy dị ứng. Nhấn Enter để thêm "{newAllergy}"
+                              </div>
+                            ) : (
+                              <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
+                                Gõ để tìm kiếm dị ứng
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <motion.button
+                        type="button"
+                        onClick={() => addAllergy()}
+                        disabled={!newAllergy.trim()}
+                        className="px-4 py-3 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  {/* Danh sách dị ứng phổ biến */}
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
+                      Dị ứng phổ biến:
+                    </label>
+                    
+                    {/* Hiển thị "Không có" riêng biệt */}
+                    <div>
+                      <motion.button
+                        type="button"
+                        onClick={() => addAllergy('Không có')}
+                        disabled={formData.allergies.includes('Không có')}
+                        className={`px-6 py-3 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
+                          formData.allergies.includes('Không có')
+                            ? 'bg-green-primary/20 text-green-primary border-green-primary/30 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-green-primary/10 to-green-primary/20 text-green-primary border-green-primary/30 hover:from-green-primary/20 hover:to-green-primary/30'
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Shield className="w-4 h-4 inline mr-2" />
+                        Không có
+                      </motion.button>
+                    </div>
+
+                    {/* Hiển thị các dị ứng khác chỉ khi chưa chọn "Không có" */}
+                    {!formData.allergies.includes('Không có') && (
+                      <div className="flex flex-wrap gap-3">
+                        {COMMON_ALLERGIES.slice(1, 11).map((allergy) => (
+                          <motion.button
+                            key={allergy}
+                            type="button"
+                            onClick={() => addAllergy(allergy)}
+                            disabled={formData.allergies.includes(allergy)}
+                            className={`px-4 py-2 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
+                              formData.allergies.includes(allergy)
+                                ? 'bg-orange-primary/20 text-orange-primary border-orange-primary/30 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-primary/10 to-orange-primary/20 text-orange-primary border-orange-primary/30 hover:from-orange-primary/20 hover:to-orange-primary/30'
+                            }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            {allergy}
+                          </motion.button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hiển thị dị ứng đã chọn */}
+                  {formData.allergies.length > 0 && (
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
+                        Dị ứng đã chọn:
+                      </label>
+                      <div className="flex flex-wrap gap-3">
+                        {formData.allergies.map((allergy, index) => (
+                          <motion.div
+                            key={index}
+                            className="flex items-center gap-2 bg-gradient-to-r from-orange-primary/20 to-green-primary/20 text-orange-primary dark:text-orange-primary border border-orange-primary/30 px-4 py-2 rounded-xl text-sm"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.1 }}
+                          >
+                            <Shield className="w-4 h-4" />
+                            <span>{allergy}</span>
+                            <motion.button
+                              type="button"
+                              onClick={() => removeAllergy(allergy)}
+                              className="hover:bg-orange-primary/30 rounded-full p-1 transition-colors"
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.8 }}
+                            >
+                              <X className="w-3 h-3" />
+                            </motion.button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
               {/* Nút lưu */}
-              <div className="flex justify-end">
-                <Button type="submit" disabled={saving} className="min-w-[120px]">
-                  {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </Button>
-              </div>
+              <motion.div 
+                className="flex justify-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <motion.button 
+                  type="submit" 
+                  disabled={saving}
+                  className="group btn-primary text-lg px-12 py-4 shadow-2xl hover:shadow-orange-lg"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {saving ? (
+                    <div className="flex items-center">
+                      <div className="loading-spinner w-5 h-5 mr-2"></div>
+                      Đang lưu...
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <Save className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                      Lưu thay đổi
+                    </div>
+                  )}
+                </motion.button>
+              </motion.div>
             </form>
           </div>
         </motion.div>
