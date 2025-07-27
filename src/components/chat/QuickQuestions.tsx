@@ -24,7 +24,7 @@ const QuickQuestions: React.FC<QuickQuestionsProps> = ({ onSelectQuestion, isVis
     },
     {
       id: 2,
-      text: "Tôi đang bị đau bụng, gợi ý món ăn phù hợp?",
+      text: "Gợi ý món ăn phù hợp?",
       icon: <Soup className="w-5 h-5" />,
       color: "from-green-400 to-green-600"
     },
@@ -46,12 +46,7 @@ const QuickQuestions: React.FC<QuickQuestionsProps> = ({ onSelectQuestion, isVis
       icon: <Heart className="w-5 h-5" />,
       color: "from-pink-400 to-pink-600"
     },
-    {
-      id: 6,
-      text: "Có món tráng miệng không?",
-      icon: <Cake className="w-5 h-5" />,
-      color: "from-purple-400 to-purple-600"
-    }
+   
   ];
 
   if (!isVisible) return null;

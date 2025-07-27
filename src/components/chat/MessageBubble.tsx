@@ -35,7 +35,7 @@ const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) =>
   };
 
   // Check if message contains food recommendations
-  const hasFoodRecommendations = message.includes('Danh sách món ăn phù hợp:');
+  const hasFoodRecommendations = message.includes('Danh sách món ăn phù hợp:') || message.includes('Đây là những món ăn phù hợp với yêu cầu của bạn:');
 
   // Get display message - show short message if there are food recommendations
   const getDisplayMessage = () => {

@@ -30,9 +30,8 @@ const userSchema = new mongoose.Schema({
   height: {
     type: Number
   },
-  activityLevel: {
-    type: String,
-    enum: ['sedentary', 'light', 'moderate', 'active', 'very_active']
+  allergies: {
+    type: [String]
   },
   medicalConditions: {
     type: [String]

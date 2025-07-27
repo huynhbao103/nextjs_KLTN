@@ -438,7 +438,7 @@ export default function ProfilePage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Chọn giới tính" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-dark-bg">
                           <SelectItem value="male">Nam</SelectItem>
                           <SelectItem value="female">Nữ</SelectItem>
                           <SelectItem value="other">Khác</SelectItem>
@@ -489,21 +489,7 @@ export default function ProfilePage() {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="activityLevel">Mức độ hoạt động</Label>
-                      <Select value={formData.activityLevel} onValueChange={(value) => handleInputChange('activityLevel', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn mức độ hoạt động" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sedentary">Ít vận động</SelectItem>
-                          <SelectItem value="light">Vận động nhẹ</SelectItem>
-                          <SelectItem value="moderate">Vận động vừa phải</SelectItem>
-                          <SelectItem value="active">Vận động nhiều</SelectItem>
-                          <SelectItem value="very_active">Vận động rất nhiều</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              
                   </CardContent>
                 </Card>
               </div>
