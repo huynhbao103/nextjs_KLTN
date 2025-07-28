@@ -34,14 +34,9 @@ const QuickQuestions: React.FC<QuickQuestionsProps> = ({ onSelectQuestion, isVis
       icon: <Leaf className="w-5 h-5" />,
       color: "from-emerald-400 to-emerald-600"
     },
+  
     {
       id: 4,
-      text: "Món chay nào dễ làm tại nhà?",
-      icon: <Leaf className="w-5 h-5" />,
-      color: "from-teal-400 to-teal-600"
-    },
-    {
-      id: 5,
       text: "Có món ăn nào phù hợp với tôi không?",
       icon: <Heart className="w-5 h-5" />,
       color: "from-pink-400 to-pink-600"

@@ -81,6 +81,7 @@ export default function HomePage() {
   const [preferencePrompt, setPreferencePrompt] = useState<null | {
     // emotionPrompt?: Prompt; // No longer needed
     cookingMethodPrompt?: Prompt;
+    allergyPrompt?: Prompt; // Added allergy prompt
   }>();
   const [showPreferenceModal, setShowPreferenceModal] = useState(false);
   const [showContinueButton, setShowContinueButton] = useState(false); // New state
@@ -112,6 +113,116 @@ export default function HomePage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  // Auto-save functionality
+  const saveChatToDatabase = async (chatData: {
+    title?: string;
+    messages: Message[];
+    sessionId?: string | null;
+  }) => {
+    if (!session?.user?.email) return;
+    
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: currentChatId, // Include chatId if exists for updates
+          title: chatData.title || 'Cuộc trò chuyện mới',
+          messages: chatData.messages,
+          sessionId: chatData.sessionId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentChatId(data.chat._id);
+        setLastSaved(new Date());
+        console.log('Chat saved successfully:', {
+          chatId: data.chat._id,
+          title: data.chat.title,
+          messagesCount: data.chat.messages.length,
+          sessionId: data.chat.sessionId
+        });
+      } else {
+        console.error('Failed to save chat');
+      }
+    } catch (error) {
+      console.error('Error saving chat:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Auto-save effect
+  useEffect(() => {
+    if (!autoSave || messages.length <= 1) return;
+
+    // Clear existing timeout
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Set new timeout for auto-save
+    const timeout = setTimeout(() => {
+      const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
+      saveChatToDatabase({
+        title,
+        messages,
+        sessionId,
+      });
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    setSaveTimeout(timeout);
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [messages, autoSave, sessionId]);
+
+  // Immediate save when sessionId changes (after AI response)
+  useEffect(() => {
+    if (!autoSave || messages.length <= 1 || !sessionId) return;
+    
+    // Save immediately when sessionId is set (after AI analysis)
+    const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
+    saveChatToDatabase({
+      title,
+      messages,
+      sessionId,
+    });
+  }, [sessionId, autoSave]);
+
+  // Force save when messages change significantly (more than 2 messages)
+  useEffect(() => {
+    if (!autoSave || messages.length <= 2) return;
+    
+    // Only save if we haven't saved recently (within last 30 seconds)
+    const now = new Date();
+    if (lastSaved && (now.getTime() - lastSaved.getTime()) < 30000) {
+      return;
+    }
+    
+    // Save when we have substantial conversation
+    const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
+    saveChatToDatabase({
+      title,
+      messages,
+      sessionId,
+    });
+  }, [messages.length, autoSave, lastSaved]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
 
   // Rewritten for the new 2-step flow
   const processUserMessage = async (question: string) => {
@@ -162,10 +273,11 @@ export default function HomePage() {
         if (data.session_id) setSessionId(data.session_id);
 
         // 3. Prepare and show the preference modal
-        if (data.cooking_method_prompt) {
+        if (data.cooking_method_prompt || data.allergy_prompt) {
           setPreferencePrompt({
             // emotionPrompt: data.emotion_prompt, // No longer needed
             cookingMethodPrompt: data.cooking_method_prompt,
+            allergyPrompt: data.allergy_prompt, // Added allergy prompt
           });
           // Don't show modal immediately, show continue button instead
           setShowContinueButton(true);
@@ -265,7 +377,7 @@ export default function HomePage() {
     }
   };
 
-  const sendPreferencesToBackend = async (methods: string[]) => { // Removed emotion
+  const sendPreferencesToBackend = async (methods: string[], allergies: string[]) => { // Added allergies parameter
     if (!sessionId) {
       console.error('Cannot send preferences without a session ID.');
       setMessages(prev => [...prev, {
@@ -283,6 +395,7 @@ export default function HomePage() {
       const response = await axios.post('/api/ai/langgraph/process-cooking', {
         session_id: sessionId,
         cooking_methods: methods,
+        allergies: allergies, // Added allergies
       }
       // No headers needed here anymore, the API route handles it
       );
@@ -317,10 +430,10 @@ export default function HomePage() {
     }
   };
 
-  const handlePreferenceConfirm = async (methods: string[]) => { // Removed emotion
+  const handlePreferenceConfirm = async (methods: string[], allergies: string[]) => { // Added allergies parameter
     setShowPreferenceModal(false);
     setIsTyping(true);
-    await sendPreferencesToBackend(methods); // Removed emotion
+    await sendPreferencesToBackend(methods, allergies); // Added allergies
     setIsTyping(false);
   };
 
@@ -328,6 +441,7 @@ export default function HomePage() {
     setShowPreferenceModal(false);
     setShowContinueButton(false); // Also hide on cancel
     const defaultMethods = preferencePrompt?.cookingMethodPrompt?.options || ['Hấp', 'Luộc'];
+    const defaultAllergies: string[] = []; // Default to no allergies
     
     setMessages(prev => [...prev, {
       id: Date.now(),
@@ -338,7 +452,7 @@ export default function HomePage() {
     }]);
 
     setIsTyping(true);
-    await sendPreferencesToBackend(defaultMethods); // Removed emotion
+    await sendPreferencesToBackend(defaultMethods, defaultAllergies); // Added allergies
     setIsTyping(false);
   };
   
@@ -482,6 +596,8 @@ export default function HomePage() {
             open={showPreferenceModal}
             // emotionPrompt={preferencePrompt.emotionPrompt} // No longer needed
             cookingMethodPrompt={preferencePrompt.cookingMethodPrompt}
+            allergyPrompt={preferencePrompt.allergyPrompt} // Added allergy prompt
+            defaultAllergies={session?.user?.allergies || []} // Pass user allergies as defaults
             onConfirm={handlePreferenceConfirm}
             onCancel={handlePreferenceCancel}
           />

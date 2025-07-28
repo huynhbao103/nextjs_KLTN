@@ -1,24 +1,45 @@
-import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface LoadingProps {
-  message?: string;
   size?: 'sm' | 'md' | 'lg';
+  text?: string;
   className?: string;
 }
 
-export function Loading({ message = 'Đang tải...', size = 'md', className = '' }: LoadingProps) {
+export const LoadingSpinner = ({ size = 'md', text, className = '' }: LoadingProps) => {
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12'
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12'
   };
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <div className="text-center">
-        <Loader2 className={`${sizeClasses[size]} animate-spin mx-auto mb-4 text-orange-primary`} />
-        <p className="text-brown-primary dark:text-dark-text">{message}</p>
-      </div>
-    </div>
+    <motion.div 
+      className={`flex flex-col items-center justify-center ${className}`}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className={`loading-spinner ${sizeClasses[size]} mb-2`}></div>
+      {text && (
+        <p className="text-brown-primary/70 dark:text-dark-text-secondary text-sm">
+          {text}
+        </p>
+      )}
+    </motion.div>
   );
-} 
+};
+
+export const LoadingPage = ({ text = 'Đang tải...' }: { text?: string }) => (
+  <div className="min-h-screen bg-gradient-to-br from-cream-primary via-white-primary to-orange-primary/10 dark:from-dark-bg dark:via-dark-card dark:to-orange-primary/5 flex items-center justify-center">
+    <LoadingSpinner size="lg" text={text} />
+  </div>
+);
+
+export const LoadingCard = ({ text = 'Đang tải...' }: { text?: string }) => (
+  <div className="card-glass p-8 flex items-center justify-center">
+    <LoadingSpinner size="md" text={text} />
+  </div>
+);
+
+export default LoadingSpinner; 

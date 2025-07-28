@@ -3,7 +3,15 @@ const nextConfig = {
   experimental: {
     // Ensure API routes are handled dynamically
     serverComponentsExternalPackages: ['bcryptjs'],
+    // Enable optimizations
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
+  // Performance optimizations
+  swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
+  
   images: {
     domains: [
       'images.unsplash.com', 
@@ -14,6 +22,9 @@ const nextConfig = {
       'lh3.googleusercontent.com',
       'openweathermap.org'
     ],
+    // Optimize image loading
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
   },
   // Add headers for external APIs
   async headers() {
