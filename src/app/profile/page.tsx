@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -16,12 +16,16 @@ import {
   Camera, 
   Save, 
   Trash2,
-  ChevronDown,
-  Sparkles,
   Shield,
   Activity
 } from 'lucide-react';
-import Header from '@/components/header/page';
+import dynamic from 'next/dynamic';
+
+// Lazy load Header component
+const Header = dynamic(() => import('@/components/header/page'), {
+  loading: () => <div className="h-20 bg-white-primary dark:bg-dark-card animate-pulse" />,
+  ssr: false
+});
 
 interface UserData {
   _id: string;
@@ -39,7 +43,7 @@ interface UserData {
   image?: string;
 }
 
-// Danh sách bệnh lý phổ biến
+// Move constants outside component to prevent recreation
 const COMMON_MEDICAL_CONDITIONS = [
   'Không có',
   'Đái tháo đường',
@@ -52,7 +56,6 @@ const COMMON_MEDICAL_CONDITIONS = [
   "Bệnh phổi tắc nghẽn mạn tính – COPD",
   "Hen phế quản",
   "Suy giáp mãn tính",
-  "Đái tháo đường",
   "Rối loạn lipid máu",
   "Bệnh Parkinson",
   "Đa xơ cứng",
@@ -99,6 +102,120 @@ const COMMON_ALLERGIES = [
   'Gia vị (ớt, tiêu, tỏi)'
 ];
 
+// Memoized components for better performance
+const LoadingSpinner = () => (
+  <div className="loading-spinner w-12 h-12 mx-auto mb-4"></div>
+);
+
+const AvatarSection = ({ 
+  avatarPreview, 
+  userData, 
+  avatarUploading, 
+  handleAvatarChange, 
+  handleAvatarUpload, 
+  handleAvatarDelete, 
+  avatarFile, 
+  avatarError 
+}: any) => (
+  <motion.div 
+    className="card-glass p-8 mb-8"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.5 }}
+  >
+    <div className="flex flex-col md:flex-row items-center gap-8">
+      <div className="relative">
+        {avatarPreview ? (
+          <motion.img
+            src={avatarPreview}
+            alt="Avatar preview"
+            className="w-32 h-32 rounded-full object-cover border-4 border-orange-primary/20 shadow-xl"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+            loading="lazy"
+          />
+        ) : (
+          <motion.div 
+            className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-4xl text-white-primary font-bold shadow-xl"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
+            {userData?.name?.[0] || userData?.email?.[0] || 'U'}
+          </motion.div>
+        )}
+        {avatarUploading && (
+          <div className="absolute inset-0 bg-white-primary/80 dark:bg-dark-card/80 flex items-center justify-center rounded-full">
+            <LoadingSpinner />
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 space-y-4">
+        <h3 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
+          Ảnh Đại Diện
+        </h3>
+        <p className="text-brown-primary/70 dark:text-dark-text-secondary">
+          Cập nhật ảnh đại diện để cá nhân hóa hồ sơ của bạn
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <label className="relative cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+              disabled={avatarUploading}
+            />
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105">
+              <Camera className="w-4 h-4" />
+              Chọn ảnh
+            </div>
+          </label>
+          
+          {avatarFile && (
+            <motion.button
+              type="button"
+              onClick={handleAvatarUpload}
+              disabled={avatarUploading}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-primary to-orange-primary text-white-primary rounded-xl hover:from-green-primary/90 hover:to-orange-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Save className="w-4 h-4" />
+              {avatarUploading ? 'Đang lưu...' : 'Lưu avatar'}
+            </motion.button>
+          )}
+          
+          {avatarPreview && (
+            <motion.button
+              type="button"
+              onClick={handleAvatarDelete}
+              disabled={avatarUploading}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white-primary rounded-xl hover:from-red-500/90 hover:to-red-600/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Xóa avatar
+            </motion.button>
+          )}
+        </div>
+        
+        {avatarError && (
+          <motion.div 
+            className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <p className="text-red-600 dark:text-red-400 text-sm">{avatarError}</p>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  </motion.div>
+);
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -111,6 +228,8 @@ export default function ProfilePage() {
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [newAllergy, setNewAllergy] = useState('');
   const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
+  const [dbAllergies, setDbAllergies] = useState<string[]>([]);
+  const [loadingAllergies, setLoadingAllergies] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -129,75 +248,71 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (status === 'unauthenticated') {
-      router.push('/login');
-      return;
-    }
+  // Memoized filtered data
+  const filteredConditions = useMemo(() => 
+    COMMON_MEDICAL_CONDITIONS.filter(condition => {
+      if (formData.medicalConditions.includes('Không có')) {
+        return condition === 'Không có' && 
+               condition.toLowerCase().includes(newCondition.toLowerCase());
+      }
+      
+      if (condition === 'Không có') {
+        return false;
+      }
+      
+      return !formData.medicalConditions.includes(condition) &&
+             condition.toLowerCase().includes(newCondition.toLowerCase());
+    }), [formData.medicalConditions, newCondition]
+  );
 
-    fetchUserData();
-  }, [status, router]);
-
+  // Fetch allergies from API
   useEffect(() => {
-    if (userData?.image) {
-      setAvatarPreview(userData.image);
-    }
-  }, [userData]);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.allergy-dropdown') && !target.closest('.condition-dropdown')) {
-        setShowAllergyDropdown(false);
-        setShowConditionDropdown(false);
+    const fetchAllergies = async () => {
+      setLoadingAllergies(true);
+      try {
+        const response = await fetch('/api/ingredients?active=true');
+        const data = await response.json();
+        if (data.success) {
+          const allergyNames = data.data.map((ingredient: any) => ingredient.name);
+          setDbAllergies(['Không có', ...allergyNames]);
+        }
+      } catch (error) {
+        console.error('Error fetching allergies:', error);
+      } finally {
+        setLoadingAllergies(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    fetchAllergies();
   }, []);
 
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch('/api/user');
-      if (response.ok) {
-        const data = await response.json();
-        setUserData(data.user);
-        
-        // Populate form with user data
-        const user = data.user;
-        setFormData({
-          name: user.name || '',
-          gender: user.gender || '',
-          dateOfBirth: user.dateOfBirth || '',
-          weight: user.weight?.toString() || '',
-          height: user.height?.toString() || '',
-          allergies: user.allergies || [],
-          medicalConditions: user.medicalConditions || []
-        });
-      } else {
-        setError('Không thể tải thông tin người dùng');
-      }
-    } catch (error) {
-      setError('Đã xảy ra lỗi khi tải thông tin');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const allergies = dbAllergies.length > 0 ? dbAllergies : COMMON_ALLERGIES;
 
-  const handleInputChange = (field: string, value: string | number | string[]) => {
+  const filteredAllergies = useMemo(() => 
+    allergies.filter(allergy => {
+      if (formData.allergies.includes('Không có')) {
+        return allergy === 'Không có' && 
+               allergy.toLowerCase().includes(newAllergy.toLowerCase());
+      }
+      
+      if (allergy === 'Không có') {
+        return false;
+      }
+      
+      return !formData.allergies.includes(allergy) &&
+             allergy.toLowerCase().includes(newAllergy.toLowerCase());
+    }), [allergies, formData.allergies, newAllergy]
+  );
+
+  // Optimized event handlers with useCallback
+  const handleInputChange = useCallback((field: string, value: string | number | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
-  const addMedicalCondition = (condition?: string) => {
+  const addMedicalCondition = useCallback((condition?: string) => {
     const conditionToAdd = condition || newCondition.trim();
     if (conditionToAdd && !formData.medicalConditions.includes(conditionToAdd)) {
       let updatedConditions: string[];
@@ -217,16 +332,16 @@ export default function ProfilePage() {
       setNewCondition('');
       setShowConditionDropdown(false);
     }
-  };
+  }, [newCondition, formData.medicalConditions]);
 
-  const removeMedicalCondition = (condition: string) => {
+  const removeMedicalCondition = useCallback((condition: string) => {
     setFormData(prev => ({
       ...prev,
       medicalConditions: prev.medicalConditions.filter(c => c !== condition)
     }));
-  };
+  }, []);
 
-  const addAllergy = (allergy?: string) => {
+  const addAllergy = useCallback((allergy?: string) => {
     const allergyToAdd = allergy || newAllergy.trim();
     if (allergyToAdd && !formData.allergies.includes(allergyToAdd)) {
       let updatedAllergies: string[];
@@ -246,49 +361,17 @@ export default function ProfilePage() {
       setNewAllergy('');
       setShowAllergyDropdown(false);
     }
-  };
+  }, [newAllergy, formData.allergies]);
 
-  const removeAllergy = (allergy: string) => {
+  const removeAllergy = useCallback((allergy: string) => {
     setFormData(prev => ({
       ...prev,
       allergies: prev.allergies.filter(a => a !== allergy)
     }));
-  };
+  }, []);
 
-  const filteredConditions = COMMON_MEDICAL_CONDITIONS.filter(
-    condition => {
-      if (formData.medicalConditions.includes('Không có')) {
-        return condition === 'Không có' && 
-               condition.toLowerCase().includes(newCondition.toLowerCase());
-      }
-      
-      if (condition === 'Không có') {
-        return false;
-      }
-      
-      return !formData.medicalConditions.includes(condition) &&
-             condition.toLowerCase().includes(newCondition.toLowerCase());
-    }
-  );
-
-  const filteredAllergies = COMMON_ALLERGIES.filter(
-    allergy => {
-      if (formData.allergies.includes('Không có')) {
-        return allergy === 'Không có' && 
-               allergy.toLowerCase().includes(newAllergy.toLowerCase());
-      }
-      
-      if (allergy === 'Không có') {
-        return false;
-      }
-      
-      return !formData.allergies.includes(allergy) &&
-             allergy.toLowerCase().includes(newAllergy.toLowerCase());
-    }
-  );
-
-  // Avatar upload handler
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Optimized avatar handlers
+  const handleAvatarChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
@@ -303,9 +386,9 @@ export default function ProfilePage() {
       setAvatarError(null);
       setAvatarPreview(URL.createObjectURL(file));
     }
-  };
+  }, []);
 
-  const handleAvatarUpload = async () => {
+  const handleAvatarUpload = useCallback(async () => {
     if (!avatarFile) return;
     setAvatarUploading(true);
     setAvatarError(null);
@@ -332,9 +415,9 @@ export default function ProfilePage() {
     } finally {
       setAvatarUploading(false);
     }
-  };
+  }, [avatarFile]);
 
-  const handleAvatarDelete = async () => {
+  const handleAvatarDelete = useCallback(async () => {
     setAvatarUploading(true);
     setAvatarError(null);
     try {
@@ -354,9 +437,9 @@ export default function ProfilePage() {
     } finally {
       setAvatarUploading(false);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -392,7 +475,70 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData]);
+
+  // Optimized data fetching
+  const fetchUserData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user');
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data.user);
+        
+        // Populate form with user data
+        const user = data.user;
+        setFormData({
+          name: user.name || '',
+          gender: user.gender || '',
+          dateOfBirth: user.dateOfBirth || '',
+          weight: user.weight?.toString() || '',
+          height: user.height?.toString() || '',
+          allergies: user.allergies || [],
+          medicalConditions: user.medicalConditions || []
+        });
+      } else {
+        setError('Không thể tải thông tin người dùng');
+      }
+    } catch (error) {
+      setError('Đã xảy ra lỗi khi tải thông tin');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Optimized effects
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    fetchUserData();
+  }, [status, router, fetchUserData]);
+
+  useEffect(() => {
+    if (userData?.image) {
+      setAvatarPreview(userData.image);
+    }
+  }, [userData]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.allergy-dropdown') && !target.closest('.condition-dropdown')) {
+        setShowAllergyDropdown(false);
+        setShowConditionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -405,7 +551,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="loading-spinner w-12 h-12 mx-auto mb-4"></div>
+            <LoadingSpinner />
             <p className="text-brown-primary/70 dark:text-dark-text-secondary">Đang tải thông tin...</p>
           </motion.div>
         </div>
@@ -425,7 +571,6 @@ export default function ProfilePage() {
           <div className="max-w-6xl mx-auto">
             {/* Header Section */}
             <div className="text-center mb-12">
-    
               <motion.h1 
                 className="text-4xl md:text-5xl font-bold text-brown-primary dark:text-dark-text mb-4"
                 initial={{ opacity: 0, y: 20 }}
@@ -434,106 +579,19 @@ export default function ProfilePage() {
               >
                 Hồ Sơ Cá Nhân
               </motion.h1>
-    
             </div>
 
             {/* Avatar Section */}
-            <motion.div 
-              className="card-glass p-8 mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="relative">
-                  {avatarPreview ? (
-                    <motion.img
-                      src={avatarPreview}
-                      alt="Avatar preview"
-                      className="w-32 h-32 rounded-full object-cover border-4 border-orange-primary/20 shadow-xl"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  ) : (
-                    <motion.div 
-                      className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-4xl text-white-primary font-bold shadow-xl"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {userData?.name?.[0] || userData?.email?.[0] || 'U'}
-                    </motion.div>
-                  )}
-                  {avatarUploading && (
-                    <div className="absolute inset-0 bg-white-primary/80 dark:bg-dark-card/80 flex items-center justify-center rounded-full">
-                      <div className="loading-spinner w-8 h-8"></div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1 space-y-4">
-                  <h3 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
-                    Ảnh Đại Diện
-                  </h3>
-                  <p className="text-brown-primary/70 dark:text-dark-text-secondary">
-                    Cập nhật ảnh đại diện để cá nhân hóa hồ sơ của bạn
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <label className="relative cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                        disabled={avatarUploading}
-                      />
-                      <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105">
-                        <Camera className="w-4 h-4" />
-                        Chọn ảnh
-                      </div>
-                    </label>
-                    
-                    {avatarFile && (
-                      <motion.button
-                        type="button"
-                        onClick={handleAvatarUpload}
-                        disabled={avatarUploading}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-primary to-orange-primary text-white-primary rounded-xl hover:from-green-primary/90 hover:to-orange-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Save className="w-4 h-4" />
-                        {avatarUploading ? 'Đang lưu...' : 'Lưu avatar'}
-                      </motion.button>
-                    )}
-                    
-                    {avatarPreview && (
-                      <motion.button
-                        type="button"
-                        onClick={handleAvatarDelete}
-                        disabled={avatarUploading}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white-primary rounded-xl hover:from-red-500/90 hover:to-red-600/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Xóa avatar
-                      </motion.button>
-                    )}
-                  </div>
-                  
-                  {avatarError && (
-                    <motion.div 
-                      className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                    >
-                      <p className="text-red-600 dark:text-red-400 text-sm">{avatarError}</p>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+            <AvatarSection 
+              avatarPreview={avatarPreview}
+              userData={userData}
+              avatarUploading={avatarUploading}
+              handleAvatarChange={handleAvatarChange}
+              handleAvatarUpload={handleAvatarUpload}
+              handleAvatarDelete={handleAvatarDelete}
+              avatarFile={avatarFile}
+              avatarError={avatarError}
+            />
 
             {/* Error/Success Messages */}
             {error && (
@@ -681,8 +739,6 @@ export default function ProfilePage() {
                         className="input-primary"
                       />
                     </div>
-
-
                   </div>
                 </motion.div>
               </div>
@@ -731,9 +787,9 @@ export default function ProfilePage() {
                         {showConditionDropdown && (
                           <div className="condition-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
                             {filteredConditions.length > 0 ? (
-                              filteredConditions.map((condition, index) => (
+                              filteredConditions.slice(0, 10).map((condition, index) => (
                                 <button
-                                  key={index}
+                                  key={`condition-${condition}-${index}`}
                                   type="button"
                                   className="w-full text-left p-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 focus:outline-none border-b border-orange-primary/10 last:border-b-0"
                                   onClick={() => addMedicalCondition(condition)}
@@ -855,10 +911,10 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
               >
-                                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-lg flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-white-primary" />
-                    </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-lg flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-white-primary" />
+                  </div>
                   <div>
                     <h2 className="text-2xl font-semibold text-brown-primary dark:text-dark-text">
                       Thông Tin Dị Ứng
@@ -892,9 +948,9 @@ export default function ProfilePage() {
                         {showAllergyDropdown && (
                           <div className="allergy-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
                             {filteredAllergies.length > 0 ? (
-                              filteredAllergies.map((allergy, index) => (
+                              filteredAllergies.slice(0, 10).map((allergy, index) => (
                                 <button
-                                  key={index}
+                                  key={`allergy-${allergy}-${index}`}
                                   type="button"
                                   className="w-full text-left p-3 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 focus:bg-orange-primary/10 dark:focus:bg-orange-primary/20 focus:outline-none border-b border-orange-primary/10 last:border-b-0"
                                   onClick={() => addAllergy(allergy)}
@@ -931,6 +987,9 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
                       Dị ứng phổ biến:
+                      {loadingAllergies && (
+                        <span className="text-sm text-gray-500 ml-2">(Đang tải...)</span>
+                      )}
                     </label>
                     
                     {/* Hiển thị "Không có" riêng biệt */}
@@ -955,23 +1014,27 @@ export default function ProfilePage() {
                     {/* Hiển thị các dị ứng khác chỉ khi chưa chọn "Không có" */}
                     {!formData.allergies.includes('Không có') && (
                       <div className="flex flex-wrap gap-3">
-                        {COMMON_ALLERGIES.slice(1, 11).map((allergy) => (
-                          <motion.button
-                            key={allergy}
-                            type="button"
-                            onClick={() => addAllergy(allergy)}
-                            disabled={formData.allergies.includes(allergy)}
-                            className={`px-4 py-2 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
-                              formData.allergies.includes(allergy)
-                                ? 'bg-orange-primary/20 text-orange-primary border-orange-primary/30 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-orange-primary/10 to-orange-primary/20 text-orange-primary border-orange-primary/30 hover:from-orange-primary/20 hover:to-orange-primary/30'
-                            }`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            {allergy}
-                          </motion.button>
-                        ))}
+                        {loadingAllergies ? (
+                          <div className="text-sm text-gray-500">Đang tải danh sách dị ứng...</div>
+                        ) : (
+                          allergies.slice(1, 11).map((allergy) => (
+                            <motion.button
+                              key={allergy}
+                              type="button"
+                              onClick={() => addAllergy(allergy)}
+                              disabled={formData.allergies.includes(allergy)}
+                              className={`px-4 py-2 rounded-xl text-sm border transition-all duration-300 transform hover:scale-105 ${
+                                formData.allergies.includes(allergy)
+                                  ? 'bg-orange-primary/20 text-orange-primary border-orange-primary/30 cursor-not-allowed'
+                                  : 'bg-gradient-to-r from-orange-primary/10 to-orange-primary/20 text-orange-primary border-orange-primary/30 hover:from-orange-primary/20 hover:to-orange-primary/30'
+                              }`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              {allergy}
+                            </motion.button>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>

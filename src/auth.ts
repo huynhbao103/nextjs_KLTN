@@ -123,6 +123,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               height: user.height,
               activityLevel: user.activityLevel,
               medicalConditions: user.medicalConditions,
+              allergies: user.allergies, // Added allergies
               providers: user.providers,
               createdAt: user.createdAt,
               updatedAt: user.updatedAt,

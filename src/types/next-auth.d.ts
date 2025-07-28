@@ -14,6 +14,7 @@ declare module "next-auth" {
     height?: number;
     activityLevel?: string;
     medicalConditions?: string[];
+    allergies?: string[]; // Added allergies
     lastUpdateDate?: Date;
   }
 
@@ -30,6 +31,7 @@ declare module "next-auth" {
       height?: number;
       activityLevel?: string;
       medicalConditions?: string[];
+      allergies?: string[]; // Added allergies
       lastUpdateDate?: Date;
     };
     accessToken?: string;
@@ -51,6 +53,7 @@ declare module "next-auth/jwt" {
     height?: number;
     activityLevel?: string;
     medicalConditions?: string[];
+    allergies?: string[]; // Added allergies
     lastUpdateDate?: Date;
   }
 } 

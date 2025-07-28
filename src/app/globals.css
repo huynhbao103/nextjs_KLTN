@@ -2,8 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
+  /* Optimize font loading */
+  @font-face {
+    font-family: 'Inter';
+    font-display: swap;
+    src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  }
+  
+  /* Optimize animations */
+  * {
+    will-change: auto;
+  }
+  
+  /* Optimize scrolling */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
   html {
     scroll-behavior: smooth;
   }

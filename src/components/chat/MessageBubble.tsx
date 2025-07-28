@@ -57,18 +57,19 @@ const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) =>
         ease: "easeOut"
       }}
     >
-      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-3 max-w-4xl lg:max-w-5xl xl:max-w-6xl`}>
+      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-4xl lg:max-w-5xl xl:max-w-6xl`}>
         {/* Avatar */}
         <motion.div 
-          className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-lg ${
+          className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
             isUser 
-              ? 'bg-gradient-to-br from-orange-primary to-green-primary text-white-primary' 
-              : 'bg-gradient-to-br from-brown-primary to-orange-primary text-white-primary'
+              ? '' 
+              : ''
           }`}
           whileHover={{ scale: 1.1 }}
           transition={{ duration: 0.2 }}
         >
-          {isUser ? getUserAvatar() : <Bot className="w-6 h-6" />}
+          {isUser ? getUserAvatar() : "" }
+          {/* <Bot className="w-6 h-6" />} */}
         </motion.div>
         
         {/* Message bubble */}
