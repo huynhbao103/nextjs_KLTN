@@ -35,6 +35,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         try {
           await dbConnect()
+          
+          // Ensure User model is properly initialized
+          if (!User || typeof User.findOne !== 'function') {
+            console.error('User model is not properly initialized')
+            throw new Error('Database model error')
+          }
+          
           const user = await User.findOne({ email: credentials.email })
           console.log('Found user:', { 
             exists: !!user, 
@@ -103,6 +110,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session?.user) {
         try {
           await dbConnect()
+          
+          // Ensure User model is properly initialized
+          if (!User || typeof User.findOne !== 'function') {
+            console.error('User model is not properly initialized in session callback')
+            // Return session without additional user data if model is not available
+            if (token?.id) {
+              session.user.id = token.id
+            }
+            return session
+          }
+          
           const user = await User.findOne({ email: session.user.email })
           console.log('session callback - Found user:', { 
             exists: !!user, 
@@ -114,16 +132,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             session.user = {
               ...session.user,
               id: user._id.toString(),
-              phone: user.phone,
-              address: user.address,
-              bio: user.bio,
               age: user.age,
               gender: user.gender,
               weight: user.weight,
               height: user.height,
-              activityLevel: user.activityLevel,
               medicalConditions: user.medicalConditions,
-              allergies: user.allergies, // Added allergies
+              allergies: user.allergies,
               providers: user.providers,
               createdAt: user.createdAt,
               updatedAt: user.updatedAt,
@@ -132,11 +146,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               id: session.user.id,
               providers: session.user.providers 
             })
+          } else {
+            // If user not found in database, at least ensure we have the id from token
+            if (token?.id) {
+              session.user.id = token.id
+            }
           }
         } catch (error) {
           console.error("Error in session callback:", error)
+          // Ensure we still have the user id from token even if database query fails
+          if (token?.id) {
+            session.user.id = token.id
+          }
         }
       }
+      
       // Đảm bảo luôn gán id vào session.user
       if (session?.user && token?.id) {
         session.user.id = token.id;

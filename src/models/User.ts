@@ -81,8 +81,13 @@ if (typeof window === 'undefined') {
   try {
     // Check if model already exists
     User = mongoose.models.User
-  } catch {
-    // Model doesn't exist, create it
+    if (!User) {
+      // Model doesn't exist, create it
+      User = mongoose.model('User', userSchema)
+    }
+  } catch (error) {
+    console.error('Error initializing User model:', error)
+    // Create a fallback model
     User = mongoose.model('User', userSchema)
   }
 } else {
