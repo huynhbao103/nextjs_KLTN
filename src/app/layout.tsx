@@ -4,6 +4,7 @@ import './globals.css'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { NotificationProvider } from '@/components/ui/notification'
+import AuthGuard from '@/components/AuthGuard'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -35,7 +36,9 @@ export default function RootLayout({
         >
           <ThemeProvider>
             <NotificationProvider>
-              {children}
+              <AuthGuard>
+                {children}
+              </AuthGuard>
             </NotificationProvider>
           </ThemeProvider>
         </SessionProvider>

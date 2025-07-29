@@ -2,14 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
+import { handleCors, corsHeaders } from '@/lib/cors';
 
 const BE_URL = process.env.BE_URL || 'http://localhost:8000/api';
 
 export async function POST(request: NextRequest) {
+  // Handle CORS
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: corsHeaders()
+      });
     }
 
     const body = await request.json();
@@ -25,6 +33,8 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
+    console.log('BE_URL:', BE_URL);
+
     // Forward the request to the backend
     const response = await axios.post(
       `${BE_URL}/langgraph/process-cooking`,
@@ -33,17 +43,30 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        timeout: 30000 // 30 second timeout
       }
     );
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(response.data, { headers: corsHeaders() });
 
   } catch (error: any) {
     console.error('Error in /api/ai/langgraph/process-cooking:', error.message);
+    console.error('Error details:', {
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    
     if (error.response) {
-      return NextResponse.json(error.response.data, { status: error.response.status });
+      return NextResponse.json(error.response.data, { 
+        status: error.response.status,
+        headers: corsHeaders()
+      });
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { 
+      status: 500,
+      headers: corsHeaders()
+    });
   }
 } 
