@@ -73,6 +73,21 @@ userSchema.methods.needsUpdate = function() {
   return this.lastUpdateDate < thirtyDaysAgo
 }
 
-const User = mongoose.models.User || mongoose.model('User', userSchema)
+// Safe model creation for Next.js
+let User: mongoose.Model<any>
+
+// Check if we're in a browser environment
+if (typeof window === 'undefined') {
+  try {
+    // Check if model already exists
+    User = mongoose.models.User
+  } catch {
+    // Model doesn't exist, create it
+    User = mongoose.model('User', userSchema)
+  }
+} else {
+  // In browser environment, create a dummy model
+  User = {} as mongoose.Model<any>
+}
 
 export default User 
