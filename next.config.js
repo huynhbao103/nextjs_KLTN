@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    // Ensure API routes are handled dynamically
     serverComponentsExternalPackages: ['bcryptjs'],
   },
   images: {
     domains: [
-      'images.unsplash.com', 
+      'images.unsplash.com',
       'unsplash.com',
       'avatars.githubusercontent.com',
       'github.com',
@@ -15,45 +14,20 @@ const nextConfig = {
       'openweathermap.org'
     ],
   },
-  // Add headers for external APIs
   async headers() {
     return [
       {
-        source: '/api/geocode',
+        source: '/(.*)', // Áp dụng cho mọi route
         headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
-        ],
-      },
-      {
-        source: '/api/weather',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
     ];
   },
+};
+export default nextConfig;
+=======
 }
 
-module.exports = nextConfig 
