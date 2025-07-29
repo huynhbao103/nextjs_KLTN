@@ -1,6 +1,6 @@
 {
   "name": "ai-food-recommendation",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.6.1",
     "clsx": "^2.1.1",
+    "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "framer-motion": "^10.18.0",
     "jsonwebtoken": "^9.0.2",
