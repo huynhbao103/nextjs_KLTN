@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Ingredient from '@/models/Ingredient';
+export const dynamic = 'force-dynamic';
+
 
 // GET - Lấy danh sách ingredients
 export async function GET(request: NextRequest) {
