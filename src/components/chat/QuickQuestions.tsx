@@ -18,7 +18,7 @@ const QuickQuestions: React.FC<QuickQuestionsProps> = ({ onSelectQuestion, isVis
   const quickQuestions: QuickQuestion[] = [
     {
       id: 1,
-      text: "Gợi ý món ăn trưa nhanh gọn lẹ?",
+      text: "Gợi ý món ăn nhanh gọn lẹ?",
       icon: <Utensils className="w-5 h-5" />,
       color: "from-orange-400 to-orange-600"
     },
