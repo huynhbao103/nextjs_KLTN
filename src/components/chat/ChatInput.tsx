@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Send, Paperclip, Smile, Mic, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void }) => {
+const ChatInput = ({ onSendMessage, disabled = false }: { onSendMessage: (text: string) => void, disabled?: boolean }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -18,7 +18,6 @@ const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void })
   const quickPrompts = [
     "Tôi muốn ăn món gì đó cay",
     "Gợi ý món ăn cho bữa tối",
-    "Quán ăn ngon gần đây",
     "Món ăn phù hợp cho người ăn chay"
   ];
 
@@ -53,15 +52,7 @@ const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void })
             ? 'border-orange-primary shadow-lg shadow-orange-primary/20' 
             : 'border-orange-primary/20 dark:border-orange-primary/10 hover:border-orange-primary/50'
         }`}>
-          {/* Attachment button */}
-          <motion.button
-            type="button"
-            className="p-2 text-brown-primary/60 dark:text-dark-text-secondary hover:text-orange-primary dark:hover:text-orange-primary transition-colors rounded-lg hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Paperclip className="w-5 h-5" />
-          </motion.button>
+
           
           {/* Input field */}
           <input
@@ -74,30 +65,11 @@ const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void })
             className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-brown-primary dark:text-dark-text placeholder-brown-primary/50 dark:placeholder-dark-text-secondary text-sm font-medium"
           />
           
-          {/* Voice button */}
-          <motion.button
-            type="button"
-            className="p-2 text-brown-primary/60 dark:text-dark-text-secondary hover:text-orange-primary dark:hover:text-orange-primary transition-colors rounded-lg hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Mic className="w-5 h-5" />
-          </motion.button>
-          
-          {/* Emoji button */}
-          <motion.button
-            type="button"
-            className="p-2 text-brown-primary/60 dark:text-dark-text-secondary hover:text-orange-primary dark:hover:text-orange-primary transition-colors rounded-lg hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Smile className="w-5 h-5" />
-          </motion.button>
           
           {/* Send button */}
           <motion.button
             type="submit"
-            disabled={!input.trim()}
+            disabled={!input.trim() || disabled}
             className="px-6 py-3 bg-gradient-to-r from-orange-primary to-green-primary hover:from-orange-primary/90 hover:to-green-primary/90 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 flex items-center gap-2"
             whileHover={{ scale: input.trim() ? 1.05 : 1 }}
             whileTap={{ scale: 0.95 }}

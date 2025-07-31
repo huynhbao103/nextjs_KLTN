@@ -15,7 +15,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // Define public paths that don't require authentication
-    const publicPaths = ['/login', '/register', '/api/auth', '/api/geocode', '/api/weather', '/api/health', '/api/debug']
+    const publicPaths = ['/login', '/register', '/forgot-password', '/verify-otp', '/reset-password', '/api/auth', '/api/geocode', '/api/weather', '/api/health', '/api/debug']
     
     const isPublicPath = publicPaths.some(publicPath => 
       pathname.startsWith(publicPath)

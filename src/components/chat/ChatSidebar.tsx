@@ -61,7 +61,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <MessageSquare className="w-4 h-4 text-white-primary" />
             </div>
             <h2 className="text-lg font-bold text-brown-primary dark:text-dark-text">
-              Lịch sử chat
+              Lịch sử gợi ý
             </h2>
           </div>
           <div className="flex items-center gap-2">

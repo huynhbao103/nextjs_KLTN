@@ -35,7 +35,7 @@ export const useChatHistory = () => {
         const data = await response.json();
         setChats(data.chats || []);
       } else {
-        setError('Không thể tải lịch sử chat');
+        setError('Không thể tải lịch sử gợi ý');
       }
     } catch (error) {
       setError('Đã xảy ra lỗi khi tải lịch sử');
