@@ -89,6 +89,12 @@ export default function HomePage() {
   // State for session ID
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  // State để theo dõi lựa chọn context của user
+  const [userContextPreference, setUserContextPreference] = useState<boolean | null>(null);
+
+  // State để theo dõi đã hiển thị context indicator chưa
+  const [hasShownContextIndicator, setHasShownContextIndicator] = useState(false);
+
   // Geolocation and Weather hooks
   const { position, error: geoError, loading: geoLoading } = useGeolocation();
   const lat = position?.coords.latitude;
@@ -456,8 +462,23 @@ export default function HomePage() {
     setIsTyping(false);
   };
   
+  // Wait for weather to be ready
+  const waitForWeather = () => {
+    return new Promise<void>((resolve) => {
+      const check = () => {
+        if (!weatherLoading && weatherContext) {
+          resolve();
+        } else {
+          setTimeout(check, 100);
+        }
+      };
+      check();
+    });
+  };
+
   // Sửa handleSendMessage để show modal context filter
   const handleSendMessage = async (text: string) => {
+    await waitForWeather();
     setShowQuickQuestions(false);
     setShowContinueButton(false); // Hide button on new message
     const newUserMessage: Message = {
@@ -468,18 +489,20 @@ export default function HomePage() {
       type: 'message',
     };
     setMessages(prev => [...prev, newUserMessage]);
-    // Nếu đã có sessionId thì gửi thẳng, không hiện modal nữa
+    
+    // Nếu đã có sessionId thì gửi thẳng, sử dụng lựa chọn context của user
     if (sessionId) {
       setIsTyping(true);
       await processUserMessageWithContextFilter(
         text,
         weatherContext?.name?.trim() || null,
         timeOfDay?.trim() || null,
-        false // luôn dùng context khi đã có session
+        userContextPreference || false // Sử dụng lựa chọn của user
       );
       setIsTyping(false);
       return;
     }
+    
     // Lưu lại pending question và context, show modal
     setPendingQuestion(text);
     setPendingWeather(weatherContext?.name?.trim() || null);
@@ -487,22 +510,37 @@ export default function HomePage() {
     setShowContextFilterModal(true);
   };
 
+  // Hàm để user thay đổi lựa chọn context
+  const handleChangeContextPreference = () => {
+    setShowContextFilterModal(true);
+  };
+
   // Hàm xử lý sau khi user chọn context filter
   const handleContextFilterChoice = async (ignoreContext: boolean) => {
     setShowContextFilterModal(false);
-    setIsTyping(true);
-    // Gọi processUserMessage với ignore_context_filter
-    await processUserMessageWithContextFilter(
-      pendingQuestion || '',
-      pendingWeather,
-      pendingTimeOfDay,
-      ignoreContext
-    );
-    setIsTyping(false);
-    setPendingQuestion(null);
-    setPendingWeather(null);
-    setPendingTimeOfDay(null);
-    setPendingIgnoreContext(null);
+    
+    // Lưu lựa chọn context của user
+    setUserContextPreference(ignoreContext);
+    
+    // Reset context indicator để hiển thị lại khi thay đổi preference
+    setHasShownContextIndicator(false);
+    
+    // Nếu đang có pending question (lần đầu), thì xử lý ngay
+    if (pendingQuestion) {
+      setIsTyping(true);
+      await processUserMessageWithContextFilter(
+        pendingQuestion,
+        pendingWeather,
+        pendingTimeOfDay,
+        ignoreContext
+      );
+      setIsTyping(false);
+      setPendingQuestion(null);
+      setPendingWeather(null);
+      setPendingTimeOfDay(null);
+      setPendingIgnoreContext(null);
+    }
+    // Nếu không có pending question (thay đổi preference), chỉ cập nhật preference
   };
   
   if (status === 'loading') {
@@ -521,12 +559,16 @@ export default function HomePage() {
           setCurrentChatId(chat._id);
           setMessages(chat.messages);
           setSessionId(chat.sessionId || null);
+          setHasShownContextIndicator(false); // Reset context indicator khi chọn chat khác
+          // Có thể thêm logic để load userContextPreference từ chat nếu cần
           setShowQuickQuestions(false);
           setSidebarOpen(false);
         }}
         onNewChat={() => {
           setCurrentChatId(undefined);
           setSessionId(null);
+          setUserContextPreference(null); // Reset lựa chọn context
+          setHasShownContextIndicator(false); // Reset context indicator
           setMessages([{ id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString(), type: 'message' }]);
           setShowQuickQuestions(true);
           setSidebarOpen(false);
@@ -569,6 +611,20 @@ export default function HomePage() {
             )}
             <QuickQuestions onSelectQuestion={handleSendMessage} isVisible={showQuickQuestions && messages.length <= 1} />
             
+            {/* Context preference indicator */}
+            {sessionId && userContextPreference !== null && !hasShownContextIndicator && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-center p-2"
+                onAnimationComplete={() => setHasShownContextIndicator(true)}
+              >
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                  {userContextPreference ? "🔕 Không sử dụng context thời tiết" : "🌤️ Sử dụng context thời tiết"}
+                </div>
+              </motion.div>
+            )}
+            
             {/* New Continue Button */}
             {showContinueButton && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center p-4">
@@ -586,7 +642,12 @@ export default function HomePage() {
           </ChatWindow>
         </div>
         <div className='bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700'>
-          <ChatInput onSendMessage={handleSendMessage} />
+          <div className="flex items-center justify-between p-2">
+          
+            <div className="flex-1">
+              <ChatInput onSendMessage={handleSendMessage} disabled={weatherLoading || !weatherContext} />
+            </div>
+          </div>
         </div>
       </div>
       <AIStatus isLoading={aiLoading} error={aiError} onClearError={clearError} />
@@ -621,12 +682,14 @@ export default function HomePage() {
             >
               <CardHeader className="text-center mb-4">
                 <CardTitle className="text-2xl font-bold text-brown-primary dark:text-dark-text mb-2">
-                  Bạn muốn cá nhân hóa gợi ý món ăn?
+                  {pendingQuestion ? "Bạn muốn cá nhân hóa gợi ý món ăn?" : "Thay đổi cài đặt context"}
                 </CardTitle>
                 <CardContent>
                   <p className="text-brown-primary/70 dark:text-dark-text-secondary text-base">
-                    Thời tiết giúp cá nhân hóa gợi ý món ăn dựa trên thời điểm hiện tại của bạn để lọc ra các cách chế biến phù hợp<br/>
-                    Bạn có muốn dùng thêm thời tiết để lọc món ăn không?
+                    {pendingQuestion 
+                      ? "Thời tiết giúp cá nhân hóa gợi ý món ăn dựa trên thời điểm hiện tại của bạn để lọc ra các cách chế biến phù hợp. Bạn có muốn dùng thêm thời tiết để lọc món ăn không?"
+                      : "Bạn có muốn sử dụng thông tin thời tiết để cá nhân hóa gợi ý món ăn không?"
+                    }
                   </p>
                 </CardContent>
               </CardHeader>

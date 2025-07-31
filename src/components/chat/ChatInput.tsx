@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Send, Paperclip, Smile, Mic, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void }) => {
+const ChatInput = ({ onSendMessage, disabled = false }: { onSendMessage: (text: string) => void, disabled?: boolean }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -69,7 +69,7 @@ const ChatInput = ({ onSendMessage }: { onSendMessage: (text: string) => void })
           {/* Send button */}
           <motion.button
             type="submit"
-            disabled={!input.trim()}
+            disabled={!input.trim() || disabled}
             className="px-6 py-3 bg-gradient-to-r from-orange-primary to-green-primary hover:from-orange-primary/90 hover:to-green-primary/90 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 flex items-center gap-2"
             whileHover={{ scale: input.trim() ? 1.05 : 1 }}
             whileTap={{ scale: 0.95 }}
