@@ -30,9 +30,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       return
     }
 
-    // If user is authenticated and trying to access login/register, redirect to home
+    // If user is authenticated and trying to access login/register, redirect to profile
     if (session?.user && (pathname === '/login' || pathname === '/register')) {
-      router.push('/')
+      router.push('/profile')
       return
     }
   }, [session, status, pathname, router])

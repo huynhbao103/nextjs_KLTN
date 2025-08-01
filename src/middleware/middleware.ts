@@ -5,8 +5,8 @@ export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
 
-  // Protect /replie route
-  if (nextUrl.pathname === '/replie') {
+  // Protect /chat route
+  if (nextUrl.pathname === '/chat') {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL('/login', nextUrl))
     }

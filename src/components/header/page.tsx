@@ -170,7 +170,7 @@ export default function Header() {
               Trang chủ
             </Link>
             <Link 
-              href="/replie" 
+              href="/chat" 
               className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
               aria-label="Explore food recommendations"
             >
@@ -334,7 +334,7 @@ export default function Header() {
                   Trang chủ
                 </Link>
                 <Link 
-                  href="/replie" 
+                  href="/chat" 
                   className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20"
                   onClick={handleMenuItemClick}
                   aria-label="Explore food recommendations"
