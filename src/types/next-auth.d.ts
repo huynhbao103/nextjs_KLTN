@@ -16,6 +16,7 @@ declare module "next-auth" {
     medicalConditions?: string[];
     allergies?: string[]; // Added allergies
     lastUpdateDate?: Date;
+    role?: string;
   }
 
   interface Session {
@@ -33,6 +34,7 @@ declare module "next-auth" {
       medicalConditions?: string[];
       allergies?: string[]; // Added allergies
       lastUpdateDate?: Date;
+      role?: string;
     };
     accessToken?: string;
     refreshToken?: string;
@@ -55,5 +57,6 @@ declare module "next-auth/jwt" {
     medicalConditions?: string[];
     allergies?: string[]; // Added allergies
     lastUpdateDate?: Date;
+    role?: string;
   }
 } 

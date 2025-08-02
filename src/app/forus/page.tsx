@@ -21,18 +21,18 @@ const features = [
     title: "Đề xuất thông minh",
     description: "Nhận đề xuất món ăn cá nhân hóa dựa trên sở thích, tình trạng sức khỏe, thời tiết và tâm trạng."
   },
-
-]
-
-const futureFeatures = [
-
   {
     icon: <Bot className="w-6 h-6" />,
     title: "Chatbot ẩm thực",
     description: "Hệ thống chatbot ẩm thực AI hỗ trợ theo thời gian thực."
   },
-
 ]
+
+// const futureFeatures = [
+
+
+
+// ]
 
 const values = [
   {
@@ -45,11 +45,11 @@ const values = [
     title: "Dễ sử dụng và thân thiện",
     description: "Giao diện đơn giản, đẹp mắt, thân thiện với mọi lứa tuổi."
   },
-  {
-    icon: <MessageSquare className="w-6 h-6" />,
-    title: "Hỗ trợ cộng đồng",
-    description: "Xây dựng một cộng đồng người yêu ẩm thực, nơi bạn có thể chia sẻ công thức và kinh nghiệm."
-  },
+  // {
+  //   icon: <MessageSquare className="w-6 h-6" />,
+  //   title: "Hỗ trợ cộng đồng",
+  //   description: "Xây dựng một cộng đồng người yêu ẩm thực, nơi bạn có thể chia sẻ công thức và kinh nghiệm."
+  // },
   {
     icon: <Shield className="w-6 h-6" />,
     title: "Tôn trọng dữ liệu",
@@ -72,8 +72,7 @@ const Forus = () => {
           >
         
             <h1 className="text-lg font-bold text-muted-foreground max-w-3xl mx-auto dark:text-gray-300">
-              Chào mừng bạn đến với TastyMind – nền tảng gợi ý món ăn thông minh đầu tiên tại Việt Nam, 
-              nơi kết hợp giữa công nghệ trí tuệ nhân tạo (AI) và hiểu biết sâu sắc về văn hóa ẩm thực.
+              Chào mừng bạn đến với TastyMind – nền tảng gợi ý món ăn thông minh tại Việt Nam.
             </h1>
           </motion.div>
 
@@ -89,13 +88,13 @@ const Forus = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-4 dark:text-white">
                   Sứ Mệnh Của Chúng Tôi
                 </h2>
-                <p className="text-muted-foreground dark:text-gray-300 text-center">
+                <p className="text-muted-foreground flex flex-col dark:text-gray-300 text-center">
                   Chúng tôi là một đội ngũ gồm các nhà phát triển phần mềm, chuyên gia dinh dưỡng
                 và những người đam mê ẩm thực, với mong muốn giải quyết một câu hỏi 
                   đơn giản nhưng phổ biến:
-                
+                  <span className="font-bold  text-orange-primary text-center"> "Hôm nay ăn gì?"</span>
                 </p>
-                <span className="font-bold  text-orange-primary text-center"> "Hôm nay ăn gì?"</span>
+               
               </CardContent>
             </Card>
           </motion.div>
@@ -110,7 +109,7 @@ const Forus = () => {
             <h2 className="text-2xl font-bold text-foreground mb-8 text-center dark:text-white">
               Tính Năng Nổi Bật
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
@@ -146,7 +145,7 @@ const Forus = () => {
             <h2 className="text-2xl font-bold text-foreground mb-8 text-center dark:text-white">
               Giá Trị Cốt Lõi
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {values.map((value, index) => (
                 <motion.div
                   key={index}
@@ -173,7 +172,7 @@ const Forus = () => {
           </motion.div>
 
           {/* Future Features */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
@@ -206,7 +205,7 @@ const Forus = () => {
                 </motion.div>
               ))}
             </div>
-          </motion.div>
+          </motion.div> */}
 
           {/* Closing Message */}
           <motion.div

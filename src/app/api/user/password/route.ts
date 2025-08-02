@@ -19,6 +19,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Thiếu thông tin', success: false }, { status: 400 })
     }
 
+    // Kiểm tra độ dài mật khẩu mới
+    if (newPassword.length < 6 || newPassword.length > 60) {
+      return NextResponse.json({ message: 'Mật khẩu mới phải có từ 6 đến 60 ký tự', success: false }, { status: 400 })
+    }
+
     await dbConnect()
     const user = await User.findOne({ email: session.user.email })
     if (!user || !user.password) {

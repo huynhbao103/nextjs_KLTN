@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { ChefHat, Moon, Sun, User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-react'
+import { ChefHat, Moon, Sun, User, Settings, LogOut, ChevronDown, Menu, X, Shield } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
@@ -184,6 +184,18 @@ export default function Header() {
               Về chúng tôi
             </Link>
             
+            {/* Admin Link - Only show for admin users */}
+            {session?.user?.role === 'admin' && (
+              <Link 
+                href="/admin/manage" 
+                className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 flex items-center gap-2"
+                aria-label="Admin panel"
+              >
+                <Shield className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
+            
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -349,6 +361,19 @@ export default function Header() {
                 >
                   Về chúng tôi
                 </Link>
+                
+                {/* Admin Link - Only show for admin users */}
+                {session?.user?.role === 'admin' && (
+                  <Link 
+                    href="/admin" 
+                    className="text-brown-primary dark:text-dark-text hover:text-orange-primary dark:hover:text-orange-primary transition-all duration-300 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-offset-2 rounded-lg px-3 py-2 hover:bg-orange-primary/10 dark:hover:bg-orange-primary/20 flex items-center gap-2"
+                    onClick={handleMenuItemClick}
+                    aria-label="Admin panel"
+                  >
+                    <Shield className="w-4 h-4" />
+                    Admin
+                  </Link>
+                )}
                 
                 {isLoading ? (
                   <div className="pt-4 border-t border-orange-primary/20 dark:border-orange-primary/10">

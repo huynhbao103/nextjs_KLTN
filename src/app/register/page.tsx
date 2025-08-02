@@ -40,6 +40,13 @@ export default function Register() {
     setError('');
     setLoading(true);
 
+    // Kiểm tra độ dài mật khẩu
+    if (formData.password.length < 6 || formData.password.length > 60) {
+      setError('Mật khẩu phải có từ 6 đến 60 ký tự');
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
       setLoading(false);

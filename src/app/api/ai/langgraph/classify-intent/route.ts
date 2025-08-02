@@ -39,8 +39,7 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    console.log("token", token);
-    console.log('BE_URL:', BE_URL);
+
     
     const requestBody = {
       message,
@@ -52,8 +51,7 @@ export async function POST(request: NextRequest) {
       'Authorization': `Bearer ${token}`
     };
 
-    console.log('Sending to langgraph classify-intent endpoint');
-    console.log('Request body:', requestBody);
+    
 
     const response = await axios.post(
       `${BE_URL}/langgraph/classify-intent`,
@@ -64,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('Backend classify-intent response:', response.data);
+    
 
     // Xử lý response từ backend
     let intent = 'other'; // default intent
@@ -82,7 +80,7 @@ export async function POST(request: NextRequest) {
       intent = 'other';
     }
 
-    console.log('Classified intent:', intent);
+    
 
     return NextResponse.json({
       intent: intent,

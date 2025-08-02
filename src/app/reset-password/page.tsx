@@ -15,8 +15,8 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError('');
     setSuccess(false);
-    if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.');
+    if (password.length < 6 || password.length > 60) {
+      setError('Mật khẩu phải có từ 6 đến 60 ký tự.');
       return;
     }
     if (password !== confirm) {

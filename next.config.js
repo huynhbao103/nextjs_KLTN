@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['bcryptjs'],
+    optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
   images: {
     domains: [
@@ -14,14 +15,43 @@ const nextConfig = {
       'openweathermap.org'
     ],
   },
+  // Tối ưu hóa performance
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Tối ưu hóa bundle
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      };
+    }
+    return config;
+  },
+  // Tối ưu hóa headers
   async headers() {
     return [
       {
-        source: '/(.*)', // Áp dụng cho mọi route
+        source: '/(.*)',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: '*' },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+          // Thêm cache headers
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
     ];

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
 import { ChefHat, Brain, MapPin, Star, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -9,14 +9,18 @@ import Header from '@/components/header/page'
 import Footer from '@/components/footer/page'
 import SessionInfo from '@/components/auth/SessionInfo'
 
+// Lazy load components để tối ưu hóa performance
+const LazyHeader = lazy(() => import('@/components/header/page'))
+const LazyFooter = lazy(() => import('@/components/footer/page'))
+
 export default function HomePage() {
   const [showMouseTrail, setShowMouseTrail] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const { data: session, status } = useSession();
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const mouseXSpring = useSpring(mouseX, { stiffness: 500, damping: 100 });
-  const mouseYSpring = useSpring(mouseY, { stiffness: 500, damping: 100 });
+  const mouseXSpring = useSpring(mouseX, { stiffness: 300, damping: 50 }); // Giảm stiffness
+  const mouseYSpring = useSpring(mouseY, { stiffness: 300, damping: 50 });
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     mouseX.set(e.clientX);
@@ -24,8 +28,8 @@ export default function HomePage() {
   }, [mouseX, mouseY]);
 
   useEffect(() => {
-    // Only enable mouse trail on desktop
-    if (window.innerWidth > 768) {
+    // Chỉ enable mouse trail trên desktop và khi không có touch events
+    if (window.innerWidth > 768 && !('ontouchstart' in window)) {
       setShowMouseTrail(true);
       window.addEventListener('mousemove', handleMouseMove);
     }
@@ -50,7 +54,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-cream-primary">
-      {/* Mouse Trail Effect - Only on desktop */}
+      {/* Mouse Trail Effect - Chỉ trên desktop */}
       {showMouseTrail && (
         <motion.div
           className="mouse-trail"
@@ -61,15 +65,17 @@ export default function HomePage() {
         />
       )}
       <div className="relative">
-        <Header />
+        <Suspense fallback={<div className="h-16 bg-cream-primary"></div>}>
+          <LazyHeader />
+        </Suspense>
         <main className="relative z-10">
           <div className="bg-cream-primary dark:bg-dark-bg transition-colors duration-300">
             <section className="relative z-20 px-6 py-20">
               <div className="max-w-7xl mx-auto text-center">
                 <motion.h1
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 20 }} // Giảm animation distance
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
+                  transition={{ duration: 0.6 }} // Giảm duration
                   className="text-6xl md:text-8xl font-bold mb-8"
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
@@ -82,9 +88,9 @@ export default function HomePage() {
                 </motion.h1>
                 
                 <motion.p
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
+                  transition={{ duration: 0.6, delay: 0.1 }} // Giảm duration và delay
                   className="text-xl md:text-2xl text-brown-primary/80 dark:text-dark-text-secondary mb-12 max-w-3xl mx-auto"
                 >
                   Để chúng tôi giúp bạn tìm ra món ăn và quán ăn hoàn hảo 
@@ -92,9 +98,9 @@ export default function HomePage() {
                 </motion.p>
                 
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
+                  transition={{ duration: 0.6, delay: 0.2 }} // Giảm duration và delay
                   className="flex flex-col sm:flex-row items-center justify-center gap-6"
                 >
                   <Link 
@@ -110,7 +116,7 @@ export default function HomePage() {
             <section className="relative z-20 px-6 py-20 bg-white-primary/50 dark:bg-dark-card/50 transition-colors duration-300">
               <div className="max-w-7xl mx-auto">
                 <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   className="text-4xl md:text-5xl font-bold text-center mb-16 text-brown-primary dark:text-dark-text"
@@ -123,11 +129,11 @@ export default function HomePage() {
                   {features.map((feature, index) => (
                     <motion.div
                       key={index}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={{ opacity: 0, y: 20 }} // Giảm animation distance
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ duration: 0.6, delay: index * 0.1 }}
-                      whileHover={{ scale: 1.05, rotateY: 5 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }} // Giảm duration
+                      whileHover={{ scale: 1.02, rotateY: 2 }} // Giảm hover effect
                       className="bg-white-primary dark:bg-dark-card p-8 rounded-2xl shadow-lg text-center perspective-1000 transition-colors duration-300"
                     >
                       <div className="bg-orange-primary/10 dark:bg-orange-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -144,7 +150,9 @@ export default function HomePage() {
           </div>
           {/* <SessionInfo /> */}
         </main>
-        <Footer />
+        <Suspense fallback={<div className="h-16 bg-cream-primary"></div>}>
+          <LazyFooter />
+        </Suspense>
       </div>
     </div>
   )

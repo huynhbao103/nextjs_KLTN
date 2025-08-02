@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
-}
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -29,6 +29,10 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10, // Tối ưu connection pool
+      serverSelectionTimeoutMS: 5000, // Timeout nhanh hơn
+      socketTimeoutMS: 45000,
+      family: 4, // Force IPv4
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

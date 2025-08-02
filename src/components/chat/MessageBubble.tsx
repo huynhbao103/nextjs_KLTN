@@ -5,13 +5,30 @@ import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import FoodRecommendations from './FoodRecommendations';
 
+interface Food {
+  name: string;
+  id: string;
+  description?: string | null;
+  category: string;
+  cook_method: string;
+  diet: string;
+  bmi_category: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
 interface MessageBubbleProps {
   message: string;
   isUser: boolean;
   onSelectFood?: (food: string) => void;
+  foods?: Food[]; // Thêm foods array
+  user_info?: any;
+  selected_cooking_methods?: string[];
 }
 
-const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) => {
+const MessageBubble = ({ message, isUser, onSelectFood, foods, user_info, selected_cooking_methods }: MessageBubbleProps) => {
   const { data: session } = useSession();
 
   const getUserAvatar = () => {
@@ -36,13 +53,13 @@ const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) =>
     return '';
   };
 
-  // Check if message contains food recommendations
-  const hasFoodRecommendations = message.includes('Danh sách món ăn phù hợp:') || message.includes('Đây là những món ăn phù hợp với yêu cầu của bạn:');
+  // Check if message contains food recommendations - dựa vào foods array
+  const hasFoodRecommendations = foods && foods.length > 0;
 
-  // Get display message - show short message if there are food recommendations
+  // Get display message - show AI message if there are food recommendations
   const getDisplayMessage = () => {
     if (hasFoodRecommendations) {
-      return "Tôi đã tìm thấy những món ăn phù hợp với yêu cầu của bạn! 🍽️";
+      return message; // Hiển thị message từ AI thay vì text cứng
     }
     return message;
   };
@@ -97,6 +114,9 @@ const MessageBubble = ({ message, isUser, onSelectFood }: MessageBubbleProps) =>
               <FoodRecommendations 
                 message={message} 
                 onSelectFood={onSelectFood}
+                foods={foods}
+                user_info={user_info}
+                selected_cooking_methods={selected_cooking_methods}
               />
             </motion.div>
           )}

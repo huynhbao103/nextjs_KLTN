@@ -12,39 +12,36 @@ interface Dish {
   source: string;
 }
 
+interface Food {
+  name: string;
+  id: string;
+  description?: string | null;
+  category: string;
+  cook_method: string;
+  diet: string;
+  bmi_category: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
 interface FoodRecommendationsProps {
   message: string;
   onSelectFood?: (food: string) => void;
+  foods?: Food[]; // Thêm foods array
+  user_info?: any;
+  selected_cooking_methods?: string[];
 }
 
-const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSelectFood }) => {
+const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSelectFood, foods, user_info, selected_cooking_methods }) => {
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Parse food list from message
-  const parseFoodList = (message: string) => {
-    // Extract food items from the message - support multiple formats
-    let foodMatch = message.match(/Đây là những món ăn phù hợp với yêu cầu của bạn:\s*(.+?)(?:\s*\|\s*Tổng cộng:|$)/);
-    if (!foodMatch) {
-      // Fallback to old format
-      foodMatch = message.match(/Danh sách món ăn phù hợp:\s*(.+?)(?:\s*\|\s*Tổng cộng:|$)/);
-    }
-    if (!foodMatch) return [];
-    
-    const foodText = foodMatch[1];
-    // Split by commas and clean up
-    const foods = foodText
-      .split(',')
-      .map(food => food.trim())
-      .filter(food => food && !food.includes('... và'))
-      .map(food => food.replace(/^\d+\.\s*/, '')); // Remove numbering
-    
-    return foods;
-  };
-
-  const foodList = parseFoodList(message);
+  // Sử dụng foods array trực tiếp thay vì parse message
+  const foodList = foods || [];
   const initialCount = 5;
   const displayedFoods = showAll ? foodList : foodList.slice(0, initialCount);
   const hasMore = foodList.length > initialCount;
@@ -96,11 +93,11 @@ const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSe
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayedFoods.map((food, index) => (
             <motion.button
-              key={index}
+              key={food.id || index}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              onClick={() => handleFoodClick(food)}
+              onClick={() => handleFoodClick(food.name)}
               disabled={loading}
               className="px-6 py-4 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-center text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-0"
             >
@@ -110,7 +107,14 @@ const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSe
                   Đang tải...
                 </>
               ) : (
-                food
+                <div className="text-center">
+                  <div className="font-bold">{food.name}</div>
+                  {food.cook_method && (
+                    <div className="text-xs mt-1 opacity-90">
+                      {food.cook_method}
+                    </div>
+                  )}
+                </div>
               )}
             </motion.button>
           ))}

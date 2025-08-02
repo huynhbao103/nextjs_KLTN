@@ -25,6 +25,20 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 
 // Define message types
+interface Food {
+  name: string;
+  id: string;
+  description?: string | null;
+  category: string;
+  cook_method: string;
+  diet: string;
+  bmi_category: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
 interface Message {
   id: number;
   text: string;
@@ -32,6 +46,9 @@ interface Message {
   timestamp: string;
   type?: 'message' | 'analysis';
   step?: string; // For analysis steps
+  foods?: Food[]; // Thêm để lưu danh sách foods
+  user_info?: any; // Thêm để lưu user info
+  selected_cooking_methods?: string[]; // Thêm để lưu cooking methods
 }
 
 interface ChatHistoryItem {
@@ -64,9 +81,7 @@ export default function HomePage() {
   const router = useRouter();
   const { sendMessage, isLoading: aiLoading, error: aiError, clearError } = useAI();
   
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString(), type: 'message' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [isTyping, setIsTyping] = useState(false);
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
@@ -147,12 +162,6 @@ export default function HomePage() {
         const data = await response.json();
         setCurrentChatId(data.chat._id);
         setLastSaved(new Date());
-        console.log('Chat saved successfully:', {
-          chatId: data.chat._id,
-          title: data.chat.title,
-          messagesCount: data.chat.messages.length,
-          sessionId: data.chat.sessionId
-        });
       } else {
         console.error('Failed to save chat');
       }
@@ -163,7 +172,7 @@ export default function HomePage() {
     }
   };
 
-  // Auto-save effect
+  // Auto-save effect - Tăng thời gian delay để giảm tải
   useEffect(() => {
     if (!autoSave || messages.length <= 1) return;
 
@@ -172,7 +181,7 @@ export default function HomePage() {
       clearTimeout(saveTimeout);
     }
 
-    // Set new timeout for auto-save
+    // Tăng delay từ 2s lên 5s để giảm tải
     const timeout = setTimeout(() => {
       const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
       saveChatToDatabase({
@@ -180,7 +189,7 @@ export default function HomePage() {
         messages,
         sessionId,
       });
-    }, 2000); // Auto-save after 2 seconds of inactivity
+    }, 5000); // Tăng từ 2s lên 5s
 
     setSaveTimeout(timeout);
 
@@ -189,18 +198,27 @@ export default function HomePage() {
     };
   }, [messages, autoSave, sessionId]);
 
-  // Immediate save when sessionId changes (after AI response)
+  // Immediate save when sessionId changes (after AI response) - Chỉ save khi có thay đổi quan trọng
   useEffect(() => {
     if (!autoSave || messages.length <= 1 || !sessionId) return;
-    
-    // Save immediately when sessionId is set (after AI analysis)
-    const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
-    saveChatToDatabase({
-      title,
-      messages,
-      sessionId,
+
+    // Chỉ save khi có message mới từ AI
+    const hasNewAIMessage = messages.some(msg => {
+      if (!msg.isUser) {
+        const msgTimestamp = typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp;
+        return msgTimestamp > (lastSaved?.getTime() || 0);
+      }
+      return false;
     });
-  }, [sessionId, autoSave]);
+    if (hasNewAIMessage) {
+      const title = messages.find(msg => msg.isUser)?.text?.slice(0, 50) || 'Cuộc trò chuyện mới';
+      saveChatToDatabase({
+        title,
+        messages,
+        sessionId,
+      });
+    }
+  }, [sessionId, autoSave, messages, lastSaved]);
 
   // Force save when messages change significantly (more than 2 messages)
   useEffect(() => {
@@ -233,8 +251,8 @@ export default function HomePage() {
   // Rewritten for the new 2-step flow
   const processUserMessage = async (question: string) => {
     // Sanitize and prepare data before sending
-    const weather = weatherContext?.name?.trim() || null;
-    const timeOfDayStr = timeOfDay?.trim() || null;
+    const weather = weatherContext?.name?.trim() || 'Bình thường'; // Fallback để tránh null
+    const timeOfDayStr = timeOfDay?.trim() || 'sáng'; // Fallback để tránh null
     const sanitizedQuestion = question.trim();
 
     try {
@@ -325,8 +343,8 @@ export default function HomePage() {
     try {
       const body: any = {
         question: question.trim(),
-        weather,
-        time_of_day: timeOfDayStr,
+        weather: weather || 'Bình thường', // Fallback để tránh null
+        time_of_day: timeOfDayStr || 'sáng', // Fallback để tránh null
         session_id: '',
       };
       if (ignoreContext) body.ignore_context_filter = true;
@@ -368,7 +386,10 @@ export default function HomePage() {
           text: ` ${typeof data.message === 'object' ? JSON.stringify(data.message) : data.message}`,
           isUser: false,
           timestamp: new Date().toISOString(),
-          type: 'message'
+          type: 'message',
+          foods: data.foods || [], // Lưu foods array nếu có
+          user_info: data.user_info,
+          selected_cooking_methods: data.selected_cooking_methods
         }]);
       }
     } catch (error: any) {
@@ -413,7 +434,10 @@ export default function HomePage() {
           text: data.message,
           isUser: false,
           timestamp: new Date().toISOString(),
-          type: 'message'
+          type: 'message',
+          foods: data.foods || [], // Lưu foods array
+          user_info: data.user_info,
+          selected_cooking_methods: data.selected_cooking_methods
         }]);
       } else {
         setMessages(prev => [...prev, {
@@ -466,7 +490,8 @@ export default function HomePage() {
   const waitForWeather = () => {
     return new Promise<void>((resolve) => {
       const check = () => {
-        if (!weatherLoading && weatherContext) {
+        if (!weatherLoading) {
+          // Không cần bắt buộc phải có weatherContext, chỉ cần weatherLoading xong
           resolve();
         } else {
           setTimeout(check, 100);
@@ -479,8 +504,7 @@ export default function HomePage() {
   // Sửa handleSendMessage để show modal context filter
   const handleSendMessage = async (text: string) => {
     await waitForWeather();
-    setShowQuickQuestions(false);
-    setShowContinueButton(false); // Hide button on new message
+    
     const newUserMessage: Message = {
       id: Date.now(),
       text: text,
@@ -490,13 +514,17 @@ export default function HomePage() {
     };
     setMessages(prev => [...prev, newUserMessage]);
     
+    // Hide quick questions and continue button after adding message
+    setShowQuickQuestions(false);
+    setShowContinueButton(false);
+    
     // Nếu đã có sessionId thì gửi thẳng, sử dụng lựa chọn context của user
     if (sessionId) {
       setIsTyping(true);
       await processUserMessageWithContextFilter(
         text,
-        weatherContext?.name?.trim() || null,
-        timeOfDay?.trim() || null,
+        weatherContext?.name?.trim() || 'Bình thường',
+        timeOfDay?.trim() || 'sáng',
         userContextPreference || false // Sử dụng lựa chọn của user
       );
       setIsTyping(false);
@@ -505,8 +533,8 @@ export default function HomePage() {
     
     // Lưu lại pending question và context, show modal
     setPendingQuestion(text);
-    setPendingWeather(weatherContext?.name?.trim() || null);
-    setPendingTimeOfDay(timeOfDay?.trim() || null);
+    setPendingWeather(weatherContext?.name?.trim() || 'Bình thường');
+    setPendingTimeOfDay(timeOfDay?.trim() || 'sáng');
     setShowContextFilterModal(true);
   };
 
@@ -569,7 +597,7 @@ export default function HomePage() {
           setSessionId(null);
           setUserContextPreference(null); // Reset lựa chọn context
           setHasShownContextIndicator(false); // Reset context indicator
-          setMessages([{ id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊", isUser: false, timestamp: new Date().toISOString(), type: 'message' }]);
+          setMessages([]);
           setShowQuickQuestions(true);
           setSidebarOpen(false);
         }}
@@ -590,6 +618,9 @@ export default function HomePage() {
                       message={msg.text} 
                       isUser={msg.isUser} 
                       onSelectFood={(food) => handleSendMessage(`Tôi muốn tìm hiểu thêm về món ${food}`)}
+                      foods={msg.foods}
+                      user_info={msg.user_info}
+                      selected_cooking_methods={msg.selected_cooking_methods}
                     />
                   )}
                 </div>
@@ -609,7 +640,28 @@ export default function HomePage() {
                 </div>
               </motion.div>
             )}
-            <QuickQuestions onSelectQuestion={handleSendMessage} isVisible={showQuickQuestions && messages.length <= 1} />
+            <QuickQuestions onSelectQuestion={handleSendMessage} isVisible={showQuickQuestions && messages.length === 0} />
+            
+            {/* Greeting message - shown below quick questions */}
+            {showQuickQuestions && messages.length === 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex justify-start mt-6"
+              >
+                <div className="flex items-end gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary shadow-lg font-bold">
+                    AI
+                  </div>
+                  <div className="px-6 py-4 rounded-2xl bg-white-primary dark:bg-dark-card border shadow-lg">
+                    <p className="text-brown-primary dark:text-dark-text">
+                      Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 😊
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
             
             {/* Context preference indicator */}
             {sessionId && userContextPreference !== null && !hasShownContextIndicator && (
@@ -644,9 +696,9 @@ export default function HomePage() {
         <div className='bg-white-primary/80 dark:bg-dark-card/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700'>
           <div className="flex items-center justify-between p-2">
           
-            <div className="flex-1">
-              <ChatInput onSendMessage={handleSendMessage} disabled={weatherLoading || !weatherContext} />
-            </div>
+                         <div className="flex-1">
+               <ChatInput onSendMessage={handleSendMessage} disabled={weatherLoading} />
+             </div>
           </div>
         </div>
       </div>

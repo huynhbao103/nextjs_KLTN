@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Dish from '@/models/Dish';
+import Ingredient from '@/models/Ingredient';
 
-// GET - Lấy dish theo ID
+// GET - Lấy ingredient theo ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -10,21 +10,21 @@ export async function GET(
   try {
     await dbConnect();
     
-    const dish = await Dish.findById(params.id).lean();
+    const ingredient = await Ingredient.findById(params.id);
     
-    if (!dish) {
+    if (!ingredient) {
       return NextResponse.json(
-        { success: false, error: 'Dish not found' },
+        { success: false, error: 'Ingredient not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: dish
+      data: ingredient
     });
   } catch (error) {
-    console.error('Error fetching dish:', error);
+    console.error('Error fetching ingredient:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -32,7 +32,7 @@ export async function GET(
   }
 }
 
-// PUT - Cập nhật dish
+// PUT - Cập nhật ingredient
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -41,40 +41,34 @@ export async function PUT(
     await dbConnect();
     
     const body = await request.json();
-    const { name, ingredients, instructions } = body;
+    const { name } = body;
 
-    // Validate required fields
-    if (!name || !ingredients || !Array.isArray(ingredients)) {
+    if (!name) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: name and ingredients' },
+        { success: false, error: 'Missing required field: name' },
         { status: 400 }
       );
     }
 
-    const updatedDish = await Dish.findByIdAndUpdate(
+    const ingredient = await Ingredient.findByIdAndUpdate(
       params.id,
-      {
-        name,
-        ingredients,
-        instructions: instructions || [],
-        source: 'manual'
-      },
+      { name },
       { new: true, runValidators: true }
     );
 
-    if (!updatedDish) {
+    if (!ingredient) {
       return NextResponse.json(
-        { success: false, error: 'Dish not found' },
+        { success: false, error: 'Ingredient not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: updatedDish
+      data: ingredient
     });
   } catch (error) {
-    console.error('Error updating dish:', error);
+    console.error('Error updating ingredient:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -82,7 +76,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Xóa dish
+// DELETE - Xóa ingredient
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -90,21 +84,21 @@ export async function DELETE(
   try {
     await dbConnect();
     
-    const deletedDish = await Dish.findByIdAndDelete(params.id);
+    const ingredient = await Ingredient.findByIdAndDelete(params.id);
     
-    if (!deletedDish) {
+    if (!ingredient) {
       return NextResponse.json(
-        { success: false, error: 'Dish not found' },
+        { success: false, error: 'Ingredient not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Dish deleted successfully'
+      message: 'Ingredient deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting dish:', error);
+    console.error('Error deleting ingredient:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

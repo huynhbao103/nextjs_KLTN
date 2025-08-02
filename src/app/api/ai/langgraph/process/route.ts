@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    console.log('token', token);
-    console.log('BE_URL:', BE_URL);
+
     
     // Forward the request to the actual backend with the new token
     const response = await axios.post(

@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-    console.log('BE_URL:', BE_URL);
-    console.log('Sending context selection to backend:', body);
+
 
     // Forward the request to the backend
     const response = await axios.post(
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('Backend context selection response:', response.data);
+    
 
     return NextResponse.json(response.data, { headers: corsHeaders() });
 
