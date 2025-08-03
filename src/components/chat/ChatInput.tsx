@@ -17,8 +17,7 @@ const ChatInput = ({ onSendMessage, disabled = false }: { onSendMessage: (text: 
 
   const quickPrompts = [
     "Tôi muốn ăn món gì đó cay",
-    "Gợi ý món ăn cho bữa tối",
-    "Món ăn phù hợp cho người ăn chay"
+    "Món ăn cho người ăn chay"
   ];
 
   return (
