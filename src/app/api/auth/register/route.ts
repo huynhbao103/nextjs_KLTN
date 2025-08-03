@@ -11,6 +11,14 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     const { name, email, password } = await req.json();
 
+    // Kiểm tra độ dài mật khẩu
+    if (!password || password.length < 6 || password.length > 60) {
+      return NextResponse.json(
+        { error: 'Mật khẩu phải có từ 6 đến 60 ký tự' },
+        { status: 400 }
+      );
+    }
+
     // Kiểm tra email đã tồn tại chưa
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -22,18 +30,13 @@ export async function POST(req: NextRequest) {
 
     // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Password hashed:', { hashed: !!hashedPassword });
+
 
     // Tạo user mới
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-    });
-    console.log('User created:', { 
-      id: user._id,
-      hasPassword: !!user.password,
-      email: user.email 
     });
 
     // Không trả về mật khẩu trong response

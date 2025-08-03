@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Dish from '@/models/Dish';
 
+// Cache cho dishes queries
+const dishesCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
+
 // GET - Lấy danh sách dishes
 export async function GET(request: NextRequest) {
   try {
@@ -9,30 +13,41 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search') || '';
     const skip = (page - 1) * limit;
 
+    // Tạo cache key
+    const cacheKey = `dishes_${page}_${limit}_${search}`;
+    const cached = dishesCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(cached.data);
+    }
+
     let query: any = {};
     
-    // Tìm kiếm theo tên hoặc ingredients
+    // Tối ưu hóa query tìm kiếm
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { ingredients: { $regex: search, $options: 'i' } }
+        { ingredients: { $in: [new RegExp(search, 'i')] } }
       ];
     }
 
+    // Sử dụng Promise.all để parallel queries
     const [dishes, total] = await Promise.all([
       Dish.find(query)
+        .select('neo4j_id name ingredients instructions source createdAt updatedAt') // Include all necessary fields
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .lean(),
-      Dish.countDocuments(query)
+        .lean()
+        .exec(),
+      Dish.countDocuments(query).exec()
     ]);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: dishes,
       pagination: {
@@ -41,7 +56,15 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit)
       }
+    };
+
+    // Cache kết quả
+    dishesCache.set(cacheKey, {
+      data: response,
+      timestamp: Date.now()
     });
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching dishes:', error);
     return NextResponse.json(
@@ -59,35 +82,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { neo4j_id, name, ingredients, instructions, source } = body;
 
-    // Validate required fields
-    if (!neo4j_id || !name || !ingredients || !Array.isArray(ingredients)) {
+    if (!name || !ingredients || !Array.isArray(ingredients)) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Check if neo4j_id already exists
-    const existingDish = await Dish.findOne({ neo4j_id });
-    if (existingDish) {
-      return NextResponse.json(
-        { success: false, error: 'Dish with this neo4j_id already exists' },
-        { status: 400 }
-      );
-    }
-
-    const dish = await Dish.create({
+    const dish = new Dish({
       neo4j_id,
       name,
       ingredients,
       instructions: instructions || [],
-      source: source || 'neo4j_migration'
+      source: source || 'manual'
     });
+
+    await dish.save();
+
+    // Clear cache khi có dish mới
+    dishesCache.clear();
 
     return NextResponse.json({
       success: true,
       data: dish
-    }, { status: 201 });
+    });
   } catch (error) {
     console.error('Error creating dish:', error);
     return NextResponse.json(

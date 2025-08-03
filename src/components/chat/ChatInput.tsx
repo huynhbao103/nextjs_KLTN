@@ -17,8 +17,7 @@ const ChatInput = ({ onSendMessage, disabled = false }: { onSendMessage: (text: 
 
   const quickPrompts = [
     "Tôi muốn ăn món gì đó cay",
-    "Gợi ý món ăn cho bữa tối",
-    "Món ăn phù hợp cho người ăn chay"
+    "Món ăn cho người ăn chay"
   ];
 
   return (
@@ -62,7 +61,8 @@ const ChatInput = ({ onSendMessage, disabled = false }: { onSendMessage: (text: 
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Nhập tin nhắn của bạn..."
-            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-brown-primary dark:text-dark-text placeholder-brown-primary/50 dark:placeholder-dark-text-secondary text-sm font-medium"
+            disabled={disabled}
+            className="flex-1 px-4 py-3 bg-transparent border-none outline-none text-brown-primary dark:text-dark-text placeholder-brown-primary/50 dark:placeholder-dark-text-secondary text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           />
           
           

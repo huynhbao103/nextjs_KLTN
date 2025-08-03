@@ -37,10 +37,7 @@ export async function POST(request: NextRequest) {
 
     const { chatId, messages, title, sessionId } = await request.json();
 
-    console.log('=== Chat API Debug ===');
-    console.log('Received sessionId:', sessionId);
-    console.log('ChatId:', chatId);
-    console.log('Messages count:', messages?.length);
+
 
     if (chatId) {
       // Cập nhật chat hiện tại
@@ -50,8 +47,7 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       };
       if (sessionId) updateFields.sessionId = sessionId;
-      console.log('Update fields:', updateFields);
-      console.log('Update query:', { _id: chatId, userId: session.user.email });
+      
       const updatedChat = await Chat.findOneAndUpdate(
         { _id: chatId, userId: session.user.email },
         updateFields,
@@ -60,8 +56,7 @@ export async function POST(request: NextRequest) {
       if (!updatedChat) {
         return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
       }
-      console.log('Updated chat sessionId:', updatedChat.sessionId);
-      console.log('Updated chat full data:', updatedChat.toObject());
+      
       return NextResponse.json({ 
         chat: updatedChat,
         debug: {
@@ -71,19 +66,18 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Tạo chat mới
-      console.log('Creating new chat with sessionId:', sessionId);
+      
       const chatData = {
         userId: session.user.email,
         title: title || 'Cuộc trò chuyện mới',
         messages,
         sessionId: sessionId || null
       };
-      console.log('New chat data:', chatData);
+      
       const newChat = new Chat(chatData);
 
       await newChat.save();
-      console.log('New chat saved with sessionId:', newChat.sessionId);
-      console.log('New chat full data:', newChat.toObject());
+      
       return NextResponse.json({ 
         chat: newChat, 
         debug: {

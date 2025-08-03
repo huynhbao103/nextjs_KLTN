@@ -7,8 +7,7 @@ export default function SessionInfo() {
   const { data: session, status } = useSession()
 
   useEffect(() => {
-    console.log('Session Status:', status)
-    console.log('Session Data:', session)
+    
   }, [session, status])
 
   if (status === "loading") {

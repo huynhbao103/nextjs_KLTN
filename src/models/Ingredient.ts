@@ -5,7 +5,6 @@ export interface IIngredient extends Document {
   name: string;
   created_at: Date;
   updated_at: Date;
-  is_active: boolean;
 }
 
 const IngredientSchema: Schema = new Schema({
@@ -28,10 +27,7 @@ const IngredientSchema: Schema = new Schema({
     type: Date,
     default: Date.now
   },
-  is_active: {
-    type: Boolean,
-    default: true
-  }
+
 }, {
   timestamps: { 
     createdAt: 'created_at', 
@@ -44,8 +40,13 @@ IngredientSchema.index({ name: 'text' });
 
 // Middleware để tự động cập nhật updated_at
 IngredientSchema.pre('save', function(next) {
-  (this as any).updated_at = new Date();
-  next();
+  try {
+    (this as any).updated_at = new Date();
+    next();
+  } catch (error) {
+    console.error('Error in pre-save middleware:', error);
+    next(error instanceof Error ? error : new Error('Unknown error'));
+  }
 });
 
 export default mongoose.models.Ingredient || mongoose.model<IIngredient>('Ingredient', IngredientSchema); 

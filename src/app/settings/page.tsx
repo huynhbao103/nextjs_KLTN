@@ -25,6 +25,13 @@ export default function SettingsPage() {
     const newPassword = formData.get('newPassword')
     const confirmPassword = formData.get('confirmPassword')
 
+    // Kiểm tra độ dài mật khẩu mới
+    if (!newPassword || newPassword.toString().length < 6 || newPassword.toString().length > 60) {
+      setMessage('Mật khẩu mới phải có từ 6 đến 60 ký tự')
+      setLoading(false)
+      return
+    }
+
     if (newPassword !== confirmPassword) {
       setMessage('Mật khẩu mới không khớp')
       setLoading(false)

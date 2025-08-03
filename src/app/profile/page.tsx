@@ -11,7 +11,6 @@ import {
   Scale, 
   Ruler, 
   Heart, 
-  Plus, 
   X, 
   Camera, 
   Save, 
@@ -79,28 +78,7 @@ const COMMON_MEDICAL_CONDITIONS = [
   "Nhiễm HIV/AIDS",
 ];
 
-const COMMON_ALLERGIES = [
-  'Không có',
-  'Đậu phộng',
-  'Hạt cây (hạnh nhân, óc chó, hạt điều)',
-  'Sữa',
-  'Trứng',
-  'Đậu nành',
-  'Lúa mì',
-  'Cá',
-  'Động vật có vỏ (tôm, cua, sò)',
-  'Hạt mè',
-  'Sulfites',
-  'Gluten',
-  'Lactose',
-  'Hải sản',
-  'Thịt bò',
-  'Thịt gà',
-  'Thịt lợn',
-  'Rau củ (cà chua, cà rốt)',
-  'Trái cây (dâu tây, cam, táo)',
-  'Gia vị (ớt, tiêu, tỏi)'
-];
+
 
 // Memoized components for better performance
 const LoadingSpinner = () => (
@@ -230,6 +208,7 @@ export default function ProfilePage() {
   const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
   const [dbAllergies, setDbAllergies] = useState<string[]>([]);
   const [loadingAllergies, setLoadingAllergies] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState<string>('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -265,31 +244,55 @@ export default function ProfilePage() {
     }), [formData.medicalConditions, newCondition]
   );
 
-  // Fetch allergies from API
+  // Fetch all allergies from API (supporting pagination)
   useEffect(() => {
-    const fetchAllergies = async () => {
+    const fetchAllAllergies = async () => {
       setLoadingAllergies(true);
       try {
-        const response = await fetch('/api/ingredients?active=true');
-        const data = await response.json();
-        if (data.success) {
-          const allergyNames = data.data.map((ingredient: any) => ingredient.name);
+        let allIngredients: any[] = [];
+        let page = 1;
+        let hasMore = true;
+        const limit = 100; // Fetch 100 per page
+        
+        while (hasMore) {
+          setLoadingProgress(`Đang tải trang ${page}...`);
+          const response = await fetch(`/api/ingredients?page=${page}&limit=${limit}`);
+          const data = await response.json();
+          
+          if (data.success && data.data.length > 0) {
+            allIngredients = [...allIngredients, ...data.data];
+            hasMore = data.pagination.page < data.pagination.totalPages;
+            setLoadingProgress(`Đã tải ${allIngredients.length} nguyên liệu (trang ${page}/${data.pagination.totalPages})`);
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allIngredients.length > 0) {
+          const allergyNames = allIngredients.map((ingredient: any) => ingredient.name);
           setDbAllergies(['Không có', ...allergyNames]);
+          console.log(`✅ Đã tải ${allergyNames.length} nguyên liệu từ database (${page - 1} pages)`);
+        } else {
+          console.warn('⚠️ Không tìm thấy nguyên liệu nào trong database');
+          setDbAllergies(['Không có']);
         }
       } catch (error) {
-        console.error('Error fetching allergies:', error);
+        console.error('❌ Error fetching allergies:', error);
+        setDbAllergies(['Không có']); // Chỉ để "Không có" nếu có lỗi
       } finally {
         setLoadingAllergies(false);
+        setLoadingProgress('');
       }
     };
 
-    fetchAllergies();
+    fetchAllAllergies();
   }, []);
 
-  const allergies = dbAllergies.length > 0 ? dbAllergies : COMMON_ALLERGIES;
+  const allergies = dbAllergies; // Chỉ sử dụng dữ liệu từ DB ingredients
 
   const filteredAllergies = useMemo(() => 
-    allergies.filter(allergy => {
+    allergies.filter((allergy: string) => {
       if (formData.allergies.includes('Không có')) {
         return allergy === 'Không có' && 
                allergy.toLowerCase().includes(newAllergy.toLowerCase());
@@ -314,7 +317,10 @@ export default function ProfilePage() {
 
   const addMedicalCondition = useCallback((condition?: string) => {
     const conditionToAdd = condition || newCondition.trim();
-    if (conditionToAdd && !formData.medicalConditions.includes(conditionToAdd)) {
+    // Chỉ cho phép thêm nếu có trong danh sách COMMON_MEDICAL_CONDITIONS
+    if (conditionToAdd && 
+        COMMON_MEDICAL_CONDITIONS.includes(conditionToAdd) && 
+        !formData.medicalConditions.includes(conditionToAdd)) {
       let updatedConditions: string[];
       
       if (conditionToAdd === 'Không có') {
@@ -343,7 +349,10 @@ export default function ProfilePage() {
 
   const addAllergy = useCallback((allergy?: string) => {
     const allergyToAdd = allergy || newAllergy.trim();
-    if (allergyToAdd && !formData.allergies.includes(allergyToAdd)) {
+    // Chỉ cho phép thêm nếu có trong danh sách allergies (từ API hoặc COMMON_ALLERGIES)
+    if (allergyToAdd && 
+        allergies.includes(allergyToAdd) && 
+        !formData.allergies.includes(allergyToAdd)) {
       let updatedAllergies: string[];
       
       if (allergyToAdd === 'Không có') {
@@ -361,7 +370,7 @@ export default function ProfilePage() {
       setNewAllergy('');
       setShowAllergyDropdown(false);
     }
-  }, [newAllergy, formData.allergies]);
+  }, [newAllergy, formData.allergies, allergies]);
 
   const removeAllergy = useCallback((allergy: string) => {
     setFormData(prev => ({
@@ -439,11 +448,73 @@ export default function ProfilePage() {
     }
   }, []);
 
+  // Validation function
+  const validateForm = useCallback(() => {
+    const errors: string[] = [];
+    
+    // Kiểm tra tên
+    if (!formData.name.trim()) {
+      errors.push('Vui lòng nhập họ và tên');
+    }
+    
+    // Kiểm tra giới tính
+    if (!formData.gender) {
+      errors.push('Vui lòng chọn giới tính');
+    }
+    
+    // Kiểm tra ngày sinh
+    if (!formData.dateOfBirth) {
+      errors.push('Vui lòng nhập ngày sinh');
+    } else {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (birthDate > today) {
+        errors.push('Ngày sinh không thể lớn hơn ngày hiện tại');
+      } else if (age > 120) {
+        errors.push('Ngày sinh không hợp lệ');
+      } else if (age < 18) {
+        errors.push('Bạn phải ít nhất 18 tuổi để sử dụng dịch vụ');
+      }
+    }
+    
+    // Kiểm tra cân nặng
+    if (!formData.weight) {
+      errors.push('Vui lòng nhập cân nặng');
+    } else {
+      const weight = parseFloat(formData.weight);
+      if (weight < 0 || weight > 150) {
+        errors.push('Cân nặng phải từ 1-150 kg');
+      }
+    }
+    
+    // Kiểm tra chiều cao
+    if (!formData.height) {
+      errors.push('Vui lòng nhập chiều cao');
+    } else {
+      const height = parseFloat(formData.height);
+      if (height < 0 || height > 230) {
+        errors.push('Chiều cao phải từ 1-230 cm');
+      }
+    }
+    
+    return errors;
+  }, [formData]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
     setSuccess(null);
+
+    // Validate form
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(', '));
+      setSaving(false);
+      return;
+    }
 
     try {
       const updateData = {
@@ -615,6 +686,13 @@ export default function ProfilePage() {
             )}
 
             <form onSubmit={handleSubmit}>
+              {/* Thông báo trường bắt buộc */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-orange-primary/10 to-green-primary/10 border border-orange-primary/20 rounded-xl">
+                <p className="text-sm text-brown-primary dark:text-dark-text">
+                  <span className="text-red-500">*</span> Các trường đánh dấu là bắt buộc phải điền để có thể nhận được gợi ý món ăn phù hợp với thể trạng của bạn.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 {/* Thông tin cơ bản */}
                 <motion.div 
@@ -649,25 +727,27 @@ export default function ProfilePage() {
                     <div>
                       <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
                         <User className="w-4 h-4 inline mr-2" />
-                        Họ và tên
+                        Họ và tên <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="Nhập họ và tên"
-                        className="input-primary"
+                        className={`input-primary ${!formData.name.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
+                        required
                       />
                     </div>
                     
                     <div>
                       <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
-                        Giới tính
+                        Giới tính <span className="text-red-500">*</span>
                       </label>
                       <select 
                         value={formData.gender} 
                         onChange={(e) => handleInputChange('gender', e.target.value)}
-                        className="input-primary"
+                        className={`input-primary ${!formData.gender ? 'border-red-300 focus:border-red-500' : ''}`}
+                        required
                       >
                         <option value="">Chọn giới tính</option>
                         <option value="male">Nam</option>
@@ -679,13 +759,14 @@ export default function ProfilePage() {
                     <div>
                       <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
                         <Calendar className="w-4 h-4 inline mr-2" />
-                        Ngày sinh
+                        Ngày sinh <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                        className="input-primary"
+                        className={`input-primary ${!formData.dateOfBirth ? 'border-red-300 focus:border-red-500' : ''}`}
+                        required
                       />
                     </div>
                   </div>
@@ -711,7 +792,7 @@ export default function ProfilePage() {
                     <div>
                       <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
                         <Scale className="w-4 h-4 inline mr-2" />
-                        Cân nặng (kg)
+                        Cân nặng (kg) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -720,14 +801,15 @@ export default function ProfilePage() {
                         placeholder="Nhập cân nặng"
                         min="0"
                         step="0.1"
-                        className="input-primary"
+                        className={`input-primary ${!formData.weight ? 'border-red-300 focus:border-red-500' : ''}`}
+                        required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
                         <Ruler className="w-4 h-4 inline mr-2" />
-                        Chiều cao (cm)
+                        Chiều cao (cm) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -736,7 +818,8 @@ export default function ProfilePage() {
                         placeholder="Nhập chiều cao"
                         min="0"
                         step="0.1"
-                        className="input-primary"
+                        className={`input-primary ${!formData.height ? 'border-red-300 focus:border-red-500' : ''}`}
+                        required
                       />
                     </div>
                   </div>
@@ -775,17 +858,11 @@ export default function ProfilePage() {
                             setShowConditionDropdown(true);
                           }}
                           onFocus={() => setShowConditionDropdown(true)}
-                          placeholder="Tìm kiếm hoặc nhập bệnh lý"
+                          placeholder="Tìm kiếm bệnh lý"
                           className="input-primary"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addMedicalCondition();
-                            }
-                          }}
                         />
                         {showConditionDropdown && (
-                          <div className="condition-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
+                          <div className="condition-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-white-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
                             {filteredConditions.length > 0 ? (
                               filteredConditions.slice(0, 10).map((condition, index) => (
                                 <button
@@ -799,7 +876,7 @@ export default function ProfilePage() {
                               ))
                             ) : newCondition.trim() ? (
                               <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
-                                Không tìm thấy bệnh lý. Nhấn Enter để thêm "{newCondition}"
+                                Không tìm thấy bệnh lý phù hợp
                               </div>
                             ) : (
                               <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
@@ -809,16 +886,6 @@ export default function ProfilePage() {
                           </div>
                         )}
                       </div>
-                      <motion.button
-                        type="button"
-                        onClick={() => addMedicalCondition()}
-                        disabled={!newCondition.trim()}
-                        className="px-4 py-3 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </motion.button>
                     </div>
                   </div>
 
@@ -936,19 +1003,19 @@ export default function ProfilePage() {
                             setShowAllergyDropdown(true);
                           }}
                           onFocus={() => setShowAllergyDropdown(true)}
-                          placeholder="Tìm kiếm hoặc nhập dị ứng"
+                          placeholder="Tìm kiếm dị ứng"
                           className="input-primary"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addAllergy();
-                            }
-                          }}
                         />
                         {showAllergyDropdown && (
-                          <div className="allergy-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-dark-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1">
+                          <div className="allergy-dropdown absolute top-full left-0 right-0 z-50 bg-white-primary dark:bg-white-card border border-orange-primary/20 dark:border-orange-primary/10 rounded-xl shadow-xl max-h-80 overflow-y-auto mt-1">
                             {filteredAllergies.length > 0 ? (
-                              filteredAllergies.slice(0, 10).map((allergy, index) => (
+                              <>
+                                {filteredAllergies.length > 5 && (
+                                  <div className="p-2 text-xs text-gray-500 border-b border-orange-primary/10 sticky top-0 bg-white-primary dark:bg-white-card">
+                                    Tìm thấy {filteredAllergies.length} nguyên liệu phù hợp
+                                  </div>
+                                )}
+                                {filteredAllergies.map((allergy: string, index: number) => (
                                 <button
                                   key={`allergy-${allergy}-${index}`}
                                   type="button"
@@ -957,10 +1024,11 @@ export default function ProfilePage() {
                                 >
                                   {allergy}
                                 </button>
-                              ))
+                                ))}
+                              </>
                             ) : newAllergy.trim() ? (
                               <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
-                                Không tìm thấy dị ứng. Nhấn Enter để thêm "{newAllergy}"
+                                Không tìm thấy dị ứng phù hợp
                               </div>
                             ) : (
                               <div className="p-3 text-brown-primary/50 dark:text-dark-text-secondary">
@@ -970,25 +1038,20 @@ export default function ProfilePage() {
                           </div>
                         )}
                       </div>
-                      <motion.button
-                        type="button"
-                        onClick={() => addAllergy()}
-                        disabled={!newAllergy.trim()}
-                        className="px-4 py-3 bg-gradient-to-r from-orange-primary to-green-primary text-white-primary rounded-xl hover:from-orange-primary/90 hover:to-green-primary/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </motion.button>
                     </div>
                   </div>
 
                   {/* Danh sách dị ứng phổ biến */}
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-brown-primary dark:text-dark-text">
-                      Dị ứng phổ biến:
+                      Toàn bộ dị ứng từ nguyên liệu:
                       {loadingAllergies && (
-                        <span className="text-sm text-gray-500 ml-2">(Đang tải...)</span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({loadingProgress || 'Đang tải tất cả nguyên liệu...'})
+                        </span>
+                      )}
+                      {!loadingAllergies && allergies.length > 1 && (
+                        <span className="text-sm text-gray-500 ml-2">({allergies.length - 1} nguyên liệu)</span>
                       )}
                     </label>
                     
@@ -1013,11 +1076,14 @@ export default function ProfilePage() {
 
                     {/* Hiển thị các dị ứng khác chỉ khi chưa chọn "Không có" */}
                     {!formData.allergies.includes('Không có') && (
-                      <div className="flex flex-wrap gap-3">
-                        {loadingAllergies ? (
-                          <div className="text-sm text-gray-500">Đang tải danh sách dị ứng...</div>
-                        ) : (
-                          allergies.slice(1, 11).map((allergy) => (
+                      <div>
+                        <div className="flex flex-wrap gap-3 max-h-60 overflow-y-auto border border-orange-primary/10 rounded-lg p-3">
+                          {loadingAllergies ? (
+                            <div className="text-sm text-gray-500">
+                              {loadingProgress || 'Đang tải toàn bộ nguyên liệu từ database...'}
+                            </div>
+                          ) : allergies.length > 1 ? (
+                            allergies.slice(1).map((allergy: string) => (
                             <motion.button
                               key={allergy}
                               type="button"
@@ -1034,6 +1100,14 @@ export default function ProfilePage() {
                               {allergy}
                             </motion.button>
                           ))
+                                                  ) : (
+                            <div className="text-sm text-gray-500">Không có dữ liệu dị ứng từ database.</div>
+                          )}
+                        </div>
+                        {allergies.length > 30 && (
+                          <div className="text-xs text-gray-500 mt-2 text-center">
+                            💡 Có thể cuộn để xem tất cả {allergies.length - 1} nguyên liệu từ database
+                          </div>
                         )}
                       </div>
                     )}
@@ -1046,7 +1120,7 @@ export default function ProfilePage() {
                         Dị ứng đã chọn:
                       </label>
                       <div className="flex flex-wrap gap-3">
-                        {formData.allergies.map((allergy, index) => (
+                        {formData.allergies.map((allergy: string, index: number) => (
                           <motion.div
                             key={index}
                             className="flex items-center gap-2 bg-gradient-to-r from-orange-primary/20 to-green-primary/20 text-orange-primary dark:text-orange-primary border border-orange-primary/30 px-4 py-2 rounded-xl text-sm"

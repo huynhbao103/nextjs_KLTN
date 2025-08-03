@@ -15,6 +15,11 @@ export async function POST(req: NextRequest) {
     if (!password || !token) {
       return NextResponse.json({ message: 'Thiếu thông tin.' }, { status: 400 });
     }
+    
+    // Kiểm tra độ dài mật khẩu
+    if (password.length < 6 || password.length > 60) {
+      return NextResponse.json({ message: 'Mật khẩu phải có từ 6 đến 60 ký tự.' }, { status: 400 });
+    }
     let payload: any;
     try {
       payload = jwt.verify(token, JWT_SECRET);

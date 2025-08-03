@@ -15,7 +15,7 @@ export const useAI = () => {
     setError(null);
 
     try {
-      console.log('Sending message to AI:', message);
+  
       
       const response = await fetch('/api/ai/langgraph/process', {
         method: 'POST',
@@ -25,7 +25,7 @@ export const useAI = () => {
         body: JSON.stringify({ message }),
       });
 
-      console.log('AI API response status:', response.status);
+      
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -34,7 +34,7 @@ export const useAI = () => {
       }
 
       const data = await response.json();
-      console.log('AI API response data:', data);
+      
       
       if (data.error) {
         throw new Error(data.error);

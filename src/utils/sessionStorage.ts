@@ -166,30 +166,19 @@ export const profileValidation = {
     const lastUpdate = new Date(lastUpdateDate);
     const now = new Date();
     
-    // For debugging: log the dates
-    console.log('Profile validation dates:', {
-      lastUpdate: lastUpdate.toISOString(),
-      now: now.toISOString(),
-      lastUpdateYear: lastUpdate.getFullYear(),
-      nowYear: now.getFullYear()
-    });
+
     
     // If lastUpdate is in the future, treat it as if it was set 31 days ago
     // This handles system clock issues
     if (lastUpdate > now) {
-      console.log('Last update date is in the future, treating as old data');
+  
       return true; // Needs update
     }
     
     const thirtyDaysAgo = new Date(now.getTime() - PROFILE_UPDATE_INTERVAL);
     const needsUpdate = lastUpdate < thirtyDaysAgo;
     
-    console.log('Profile validation:', {
-      lastUpdate: lastUpdate.toISOString(),
-      now: now.toISOString(),
-      thirtyDaysAgo: thirtyDaysAgo.toISOString(),
-      needsUpdate
-    });
+
     
     return needsUpdate;
   },
@@ -222,15 +211,7 @@ export const profileValidation = {
       profile.dateOfBirth
     );
     
-    console.log('Profile completeness check:', {
-      name: !!profile.name,
-      gender: !!profile.gender,
-      weight: !!profile.weight,
-      height: !!profile.height,
-      activityLevel: !!profile.activityLevel,
-      dateOfBirth: !!profile.dateOfBirth,
-      isComplete
-    });
+
     
     return isComplete;
   }

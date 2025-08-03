@@ -69,7 +69,7 @@ export class NotificationService {
         label: 'Gia hạn',
         onClick: () => {
           // Extend session logic
-          console.log('Extending session...');
+      
         }
       }
     });
@@ -111,7 +111,7 @@ export class NotificationService {
         label: 'Cài đặt lại',
         onClick: () => {
           // Guide user to enable location
-          console.log('Guide to enable location...');
+      
         }
       }
     });
@@ -187,7 +187,7 @@ export class NotificationService {
         label: 'Xem gợi ý',
         onClick: () => {
           // Navigate to recommendations
-          console.log('Navigate to recommendations...');
+      
         }
       }
     });

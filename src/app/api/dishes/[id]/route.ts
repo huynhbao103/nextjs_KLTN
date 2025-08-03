@@ -41,12 +41,12 @@ export async function PUT(
     await dbConnect();
     
     const body = await request.json();
-    const { name, ingredients, instructions, source } = body;
+    const { name, ingredients, instructions } = body;
 
     // Validate required fields
     if (!name || !ingredients || !Array.isArray(ingredients)) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: name and ingredients' },
         { status: 400 }
       );
     }
@@ -57,10 +57,9 @@ export async function PUT(
         name,
         ingredients,
         instructions: instructions || [],
-        source: source || 'neo4j_migration',
-        updatedAt: new Date()
+        source: 'manual'
       },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updatedDish) {
