@@ -30,10 +30,25 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       return
     }
 
-    // If user is authenticated and trying to access login/register, redirect to profile
+    // If user is authenticated and trying to access login/register, redirect based on role
     if (session?.user && (pathname === '/login' || pathname === '/register')) {
-      router.push('/profile')
+      if (session.user.role === 'admin') {
+        router.push('/admin/manage')
+      } else {
+        router.push('/profile')
+      }
       return
+    }
+
+    // If admin user is authenticated, redirect to admin panel for any non-admin path
+    if (session?.user?.role === 'admin') {
+      const adminPaths = ['/admin']
+      const isAdminPath = adminPaths.some(adminPath => pathname.startsWith(adminPath))
+      
+      if (!isAdminPath) {
+        router.push('/admin/manage')
+        return
+      }
     }
   }, [session, status, pathname, router])
 
