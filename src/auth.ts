@@ -68,6 +68,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email,
             name: user.name,
             image: user.image,
+            role: user.role, // Include role in the authorize return
           }
         } catch (error: any) {
           console.error('Error in authorize:', error)
@@ -142,15 +143,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
       
-      // Đảm bảo luôn gán id vào session.user
+      // Đảm bảo luôn gán id và role vào session.user
       if (session?.user && token?.id) {
         session.user.id = token.id;
+        session.user.role = token.role; // Set role from token
       }
       return session
     },
     async jwt({ token, user, account }: any) {
       if (user) {
         token.id = user.id;
+        token.role = user.role; // Store role in token
       }
 
       return token
