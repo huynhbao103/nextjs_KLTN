@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { useTheme } from '@/context/ThemeContext'
 import logo from '@/public/images/logo.png'
+// Remove logo import - use direct path instead
 
 // Animation variants for better performance
 const mobileMenuVariants = {
