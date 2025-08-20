@@ -7,7 +7,6 @@ import { handleCors, corsHeaders } from '@/lib/cors';
 const BE_URL = process.env.BE_URL || 'http://localhost:8000/api';
 
 export async function POST(request: NextRequest) {
-  // Handle CORS
   const corsResponse = handleCors(request);
   if (corsResponse) return corsResponse;
 
@@ -21,8 +20,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const { session_id, ingredients, cooking_methods } = body;
 
-    // Create JWT token for the backend
+    if (!session_id || !ingredients || !cooking_methods) {
+        return NextResponse.json({ error: 'Missing required fields: session_id, ingredients, and cooking_methods are required.' }, { 
+            status: 400,
+            headers: corsHeaders() 
+        });
+    }
+
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     
     const tokenPayload = { 
@@ -33,40 +39,35 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
-
-
-    // Forward the request to the backend
     const response = await axios.post(
-      `${BE_URL}/langgraph/process-context-selection`,
-      body,
+      `${BE_URL}/langgraph/process-selections`,
+      {
+        session_id,
+        ingredients,
+        cooking_methods,
+      },
       { 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 30000 
       }
     );
-
-    
 
     return NextResponse.json(response.data, { headers: corsHeaders() });
 
   } catch (error: any) {
-    console.error(
-      'Error in /api/langgraph/process-context-selection:',
-      error.response?.data || error.message
-    );
-
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error.response?.data || error.message 
-      },
-      { 
-        status: 500,
+    console.error('Error in /api/ai/langgraph/process-selections:', error.message);
+    if (error.response) {
+      return NextResponse.json(error.response.data, { 
+        status: error.response.status,
         headers: corsHeaders()
-      }
-    );
+      });
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { 
+      status: 500,
+      headers: corsHeaders()
+    });
   }
-} 
+}

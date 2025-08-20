@@ -95,6 +95,7 @@ export default function HomePage() {
   // State for the new prompt structure
   const [preferencePrompt, setPreferencePrompt] = useState<null | {
     // emotionPrompt?: Prompt; // No longer needed
+    ingredientPrompt?: Prompt; // Added ingredient prompt
     cookingMethodPrompt?: Prompt;
     allergyPrompt?: Prompt; // Added allergy prompt
   }>();
@@ -281,7 +282,7 @@ export default function HomePage() {
         } catch (e) { /* Not a JSON string, proceed */ }
       }
 
-      if (data.status === 'analysis_complete' && data.analysis_steps) {
+      if (data.status === 'awaiting_selections' && data.analysis_steps) {
         if (Array.isArray(data.analysis_steps) && data.analysis_steps.length > 0) {
           const analysisMessages: Message[] = data.analysis_steps.map((step: any) => ({
             id: Date.now() + Math.random(),
@@ -297,9 +298,10 @@ export default function HomePage() {
         if (data.session_id) setSessionId(data.session_id);
 
         // 3. Prepare and show the preference modal
-        if (data.cooking_method_prompt || data.allergy_prompt) {
+        if (data.ingredient_prompt || data.cooking_method_prompt || data.allergy_prompt) {
           setPreferencePrompt({
             // emotionPrompt: data.emotion_prompt, // No longer needed
+            ingredientPrompt: data.ingredient_prompt, // Added ingredient prompt
             cookingMethodPrompt: data.cooking_method_prompt,
             allergyPrompt: data.allergy_prompt, // Added allergy prompt
           });
@@ -361,7 +363,7 @@ export default function HomePage() {
           if (parsedMessage && parsedMessage.status) data = parsedMessage;
         } catch (e) { /* Not a JSON string, proceed */ }
       }
-      if (data.status === 'analysis_complete' && data.analysis_steps) {
+      if (data.status === 'awaiting_selections' && data.analysis_steps) {
         if (Array.isArray(data.analysis_steps) && data.analysis_steps.length > 0) {
           const analysisMessages: Message[] = data.analysis_steps.map((step: any) => ({
             id: Date.now() + Math.random(),
@@ -374,8 +376,11 @@ export default function HomePage() {
           setMessages(prev => [...prev, ...analysisMessages]);
         }
         if (data.session_id) setSessionId(data.session_id);
-        if (data.cooking_method_prompt) {
-          setPreferencePrompt({ cookingMethodPrompt: data.cooking_method_prompt });
+        if (data.ingredient_prompt || data.cooking_method_prompt) {
+          setPreferencePrompt({ 
+            ingredientPrompt: data.ingredient_prompt, // Added ingredient prompt
+            cookingMethodPrompt: data.cooking_method_prompt 
+          });
           setShowContinueButton(true);
         }
         return;
@@ -404,7 +409,7 @@ export default function HomePage() {
     }
   };
 
-  const sendPreferencesToBackend = async (methods: string[], allergies: string[]) => { // Added allergies parameter
+  const sendPreferencesToBackend = async (methods: string[], allergies: string[], ingredients: string[] = []) => { // Added allergies parameter
     if (!sessionId) {
       console.error('Cannot send preferences without a session ID.');
       setMessages(prev => [...prev, {
@@ -419,10 +424,11 @@ export default function HomePage() {
 
     try {
       // FE calls its own API route
-      const response = await axios.post('/api/ai/langgraph/process-cooking', {
+      const response = await axios.post('/api/ai/langgraph/process-selections', {
         session_id: sessionId,
         cooking_methods: methods,
         allergies: allergies, // Added allergies
+        ingredients: ingredients // Added ingredients
       }
       // No headers needed here anymore, the API route handles it
       );
@@ -460,10 +466,12 @@ export default function HomePage() {
     }
   };
 
-  const handlePreferenceConfirm = async (methods: string[], allergies: string[]) => { // Added allergies parameter
+  const handlePreferenceConfirm = async (methods: string[], allergies: string[], ingredients: string[]) => {
     setShowPreferenceModal(false);
     setIsTyping(true);
-    await sendPreferencesToBackend(methods, allergies); // Added allergies
+    
+    // Send both ingredients and cooking methods to backend
+    await sendPreferencesToBackend(methods, allergies, ingredients);
     setIsTyping(false);
   };
 
@@ -708,10 +716,11 @@ export default function HomePage() {
           <PreferenceModal
             open={showPreferenceModal}
             // emotionPrompt={preferencePrompt.emotionPrompt} // No longer needed
+            ingredientPrompt={preferencePrompt.ingredientPrompt} // Added ingredient prompt
             cookingMethodPrompt={preferencePrompt.cookingMethodPrompt}
             allergyPrompt={preferencePrompt.allergyPrompt} // Added allergy prompt
             defaultAllergies={session?.user?.allergies || []} // Pass user allergies as defaults
-            onConfirm={handlePreferenceConfirm}
+            onConfirm={(ingredients, methods, allergies) => handlePreferenceConfirm(methods, allergies, ingredients)}
             onCancel={handlePreferenceCancel}
           />
         )}
