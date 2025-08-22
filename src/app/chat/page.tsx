@@ -227,7 +227,7 @@ export default function HomePage() {
     
     // Only save if we haven't saved recently (within last 30 seconds)
     const now = new Date();
-    if (lastSaved && (now.getTime() - lastSaved.getTime()) < 30000) {
+    if (lastSaved && (now.getTime() - lastSaved.getTime()) < 90000) {
       return;
     }
     

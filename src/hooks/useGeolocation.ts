@@ -50,7 +50,7 @@ export const useGeolocation = () => {
     const options = {
         enableHighAccuracy: true,
         timeout: 10000,
-      maximumAge: 300000 // 5 minutes
+      maximumAge: 900000 // 5 minutes
     };
 
     navigator.geolocation.getCurrentPosition(successHandler, errorHandler, options);

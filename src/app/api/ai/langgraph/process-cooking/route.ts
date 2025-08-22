@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 90000 // 30 second timeout
       }
     );
 
