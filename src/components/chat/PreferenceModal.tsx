@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, X, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat, Wheat, Cake, Wind, Search, Zap, Leaf } from 'lucide-react';
+import { Utensils, X, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat, Wheat, Cake, Wind, Search, Zap, Leaf, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -152,10 +152,9 @@ export default function PreferenceModal({
   };
 
   const handleNext = () => {
-    if (selectedIngredients.length > 0) {
-      setStep(2);
-      setSearchTerm('');
-    }
+    // Cho phép tiếp tục ngay cả khi không chọn nguyên liệu
+    setStep(2);
+    setSearchTerm('');
   };
 
   const handleBack = () => {
@@ -164,12 +163,14 @@ export default function PreferenceModal({
 
   const handleConfirm = () => {
     const methodsToSend = selectedMethods.length > 0 ? selectedMethods : (cookingMethodPrompt?.options || []);
-    onConfirm(selectedIngredients, methodsToSend, selectedAllergies);
+    // Nếu không chọn nguyên liệu, gửi tất cả nguyên liệu có sẵn
+    const ingredientsToSend = selectedIngredients.length > 0 ? selectedIngredients : (ingredientPrompt?.options || []);
+    onConfirm(ingredientsToSend, methodsToSend, selectedAllergies);
   };
 
   const getStepTitle = () => {
     switch (step) {
-      case 1: return "Bước 1: Chọn Nguyên Liệu";
+      case 1: return "Bước 1: Chọn Nguyên Liệu (Tùy chọn)";
       case 2: return "Bước 2: Chọn Phương Pháp Chế Biến";
       default: return "Chọn Tùy Chọn";
     }
@@ -177,7 +178,7 @@ export default function PreferenceModal({
 
   const getStepMessage = () => {
     switch (step) {
-      case 1: return ingredientPrompt?.message || "Hãy chọn các nguyên liệu bạn muốn sử dụng:";
+      case 1: return (ingredientPrompt?.message || "Hãy chọn các nguyên liệu bạn muốn sử dụng:") + " (Bỏ qua để chọn tất cả nguyên liệu có sẵn)";
       case 2: return cookingMethodPrompt?.message || "Chọn phương pháp nấu để có gợi ý phù hợp nhất!";
       default: return "";
     }
@@ -210,6 +211,9 @@ export default function PreferenceModal({
               <p className="text-brown-primary/70 dark:text-dark-text-secondary">
                 {getStepMessage()}
               </p>
+              
+           
+              
             </div>
 
             <div className="flex-grow overflow-y-auto px-2">
@@ -240,6 +244,7 @@ export default function PreferenceModal({
                         </button>
                       ))}
                     </div>
+                    
                   </motion.div>
                 )}
 
@@ -305,11 +310,13 @@ export default function PreferenceModal({
               
               {step === 1 ? (
                 <Button 
-                  onClick={handleNext} 
-                  disabled={selectedIngredients.length === 0}
+                  onClick={handleNext}
                   className="px-8 py-3 bg-gradient-to-r from-orange-400 to-pink-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-pink-500 transition-all"
                 >
-                  Tiếp Tục ({selectedIngredients.length})
+                  {selectedIngredients.length > 0 
+                    ? `Tiếp Tục với ${selectedIngredients.length} nguyên liệu` 
+                    : 'Tiếp Tục - Chọn tất cả nguyên liệu'
+                  }
                 </Button>
               ) : (
                 <Button 

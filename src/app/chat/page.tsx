@@ -423,6 +423,19 @@ export default function HomePage() {
     }
 
     try {
+      // Thêm thông báo về việc xử lý nguyên liệu
+      const ingredientMessage = ingredients.length > 0 
+        ? `Đang tìm món ăn với ${ingredients.length} nguyên liệu đã chọn...`
+        : 'Đang tìm tất cả món ăn có sẵn (không giới hạn nguyên liệu)...';
+      
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: ingredientMessage,
+        isUser: false,
+        timestamp: new Date().toISOString(),
+        type: 'message'
+      }]);
+
       // FE calls its own API route
       const response = await axios.post('/api/ai/langgraph/process-selections', {
         session_id: sessionId,
@@ -458,7 +471,7 @@ export default function HomePage() {
       console.error('Error in sendPreferencesToBackend:', error);
       setMessages(prev => [...prev, {
         id: Date.now(),
-        text: "Có lỗi xảy ra khi xử lý lựa chọn của bạn.",
+        text: 'Có lỗi xảy ra khi tìm kiếm món ăn. Vui lòng thử lại.',
         isUser: false,
         timestamp: new Date().toISOString(),
         type: 'message'

@@ -1,17 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { ChefHat, Brain, MapPin, Star, Clock, Users } from 'lucide-react'
+import { Brain, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import Header from '@/components/header/page'
 import Footer from '@/components/footer/page'
-import SessionInfo from '@/components/auth/SessionInfo'
-
-// Lazy load components để tối ưu hóa performance
-const LazyHeader = lazy(() => import('@/components/header/page'))
-const LazyFooter = lazy(() => import('@/components/footer/page'))
 
 export default function HomePage() {
   const [showMouseTrail, setShowMouseTrail] = useState(false);
@@ -19,8 +14,8 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const mouseXSpring = useSpring(mouseX, { stiffness: 300, damping: 50 }); // Giảm stiffness
-  const mouseYSpring = useSpring(mouseY, { stiffness: 300, damping: 50 });
+  const mouseXSpring = useSpring(mouseX, { stiffness: 200, damping: 30 }); // Tối ưu hóa spring
+  const mouseYSpring = useSpring(mouseY, { stiffness: 200, damping: 30 });
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     mouseX.set(e.clientX);
@@ -65,17 +60,15 @@ export default function HomePage() {
         />
       )}
       <div className="relative">
-        <Suspense fallback={<div className="h-16 bg-cream-primary"></div>}>
-          <LazyHeader />
-        </Suspense>
+        <Header />
         <main className="relative z-10">
           <div className="bg-cream-primary dark:bg-dark-bg transition-colors duration-300">
             <section className="relative z-20 px-6 py-20">
               <div className="max-w-7xl mx-auto text-center">
                 <motion.h1
-                  initial={{ opacity: 0, y: 20 }} // Giảm animation distance
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }} // Giảm duration
+                  transition={{ duration: 0.4 }}
                   className="text-6xl md:text-8xl font-bold mb-8"
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
@@ -84,13 +77,12 @@ export default function HomePage() {
                   <br />
                   <span className="text-brown-primary dark:text-dark-text">Món Ngon</span>
                   <br />
-                
                 </motion.h1>
                 
                 <motion.p
-                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }} // Giảm duration và delay
+                  transition={{ duration: 0.4, delay: 0.1 }}
                   className="text-xl md:text-2xl text-brown-primary/80 dark:text-dark-text-secondary mb-12 max-w-3xl mx-auto"
                 >
                   Để chúng tôi giúp bạn tìm ra món ăn và quán ăn hoàn hảo 
@@ -98,9 +90,9 @@ export default function HomePage() {
                 </motion.p>
                 
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }} // Giảm duration và delay
+                  transition={{ duration: 0.4, delay: 0.2 }}
                   className="flex flex-col sm:flex-row items-center justify-center gap-6"
                 >
                   <Link 
@@ -116,24 +108,25 @@ export default function HomePage() {
             <section className="relative z-20 px-6 py-20 bg-white-primary/50 dark:bg-dark-card/50 transition-colors duration-300">
               <div className="max-w-7xl mx-auto">
                 <motion.h2
-                  initial={{ opacity: 0, y: 15 }} // Giảm animation distance
+                  initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
+                  transition={{ duration: 0.3 }}
                   className="text-4xl md:text-5xl font-bold text-center mb-16 text-brown-primary dark:text-dark-text"
                 >
                   Tại Sao Chọn TastyMind?
                 </motion.h2>
                 
                 <div className="flex justify-center mx-auto items-center">
-                <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                   {features.map((feature, index) => (
                     <motion.div
                       key={index}
-                      initial={{ opacity: 0, y: 20 }} // Giảm animation distance
+                      initial={{ opacity: 0, y: 10 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ duration: 0.4, delay: index * 0.1 }} // Giảm duration
-                      whileHover={{ scale: 1.02, rotateY: 2 }} // Giảm hover effect
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.01 }}
                       className="bg-white-primary dark:bg-dark-card p-8 rounded-2xl shadow-lg text-center perspective-1000 transition-colors duration-300"
                     >
                       <div className="bg-orange-primary/10 dark:bg-orange-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -148,11 +141,8 @@ export default function HomePage() {
               </div>
             </section>
           </div>
-          {/* <SessionInfo /> */}
         </main>
-        <Suspense fallback={<div className="h-16 bg-cream-primary"></div>}>
-          <LazyFooter />
-        </Suspense>
+        <Footer />
       </div>
     </div>
   )

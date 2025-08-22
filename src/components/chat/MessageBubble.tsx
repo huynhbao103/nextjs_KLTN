@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import FoodRecommendations from './FoodRecommendations';
+import Avatar from '@/components/ui/avatar';
 
 interface Food {
   name: string;
@@ -33,21 +34,13 @@ const MessageBubble = ({ message, isUser, onSelectFood, foods, user_info, select
 
   const getUserAvatar = () => {
     if (isUser && session?.user) {
-      // Nếu có avatar image thì hiển thị
-      if (session.user.image) {
-        return (
-          <img 
-            src={session.user.image} 
-            alt={session.user.name || 'User'} 
-            className="w-10 h-10 rounded-full object-cover border-2 border-orange-primary/30 shadow-lg"
-          />
-        );
-      }
-      // Nếu không có image thì hiển thị chữ cái đầu
       return (
-        <span className="text-white-primary font-bold">
-          {session.user.name?.[0] || session.user.email?.[0] || 'U'}
-        </span>
+        <Avatar 
+          src={session.user.image}
+          alt={session.user.name || 'User'}
+          size="md"
+          className="border-2 border-orange-primary/30 shadow-lg"
+        />
       );
     }
     return '';

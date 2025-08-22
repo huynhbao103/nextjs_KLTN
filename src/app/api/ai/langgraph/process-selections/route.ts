@@ -22,8 +22,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { session_id, ingredients, cooking_methods } = body;
 
-    if (!session_id || !ingredients || !cooking_methods) {
-        return NextResponse.json({ error: 'Missing required fields: session_id, ingredients, and cooking_methods are required.' }, { 
+    if (!session_id || !cooking_methods) {
+        return NextResponse.json({ error: 'Missing required fields: session_id and cooking_methods are required.' }, { 
+            status: 400,
+            headers: corsHeaders() 
+        });
+    }
+
+    // ingredients có thể là mảng rỗng (để xem tất cả món ăn)
+    if (!Array.isArray(ingredients)) {
+        return NextResponse.json({ error: 'ingredients must be an array (can be empty to see all dishes).' }, { 
             status: 400,
             headers: corsHeaders() 
         });

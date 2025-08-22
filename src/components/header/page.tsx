@@ -7,8 +7,7 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { useTheme } from '@/context/ThemeContext'
-import logo from '@/public/images/logo.png'
-// Remove logo import - use direct path instead
+import Avatar from '@/components/ui/avatar'
 
 // Animation variants for better performance
 const mobileMenuVariants = {
@@ -145,12 +144,15 @@ export default function Header() {
             >
               <div className="relative w-20 h-12 sm:w-24 sm:h-16 flex items-center justify-center">
                 <Image 
-                  src={logo} 
+                  src="/images/logo.png" 
                   alt="FoodAI Logo" 
                   fill
                   className="object-contain"
                   priority
                   sizes="(max-width: 640px) 80px, 96px"
+                  quality={85}
+                  placeholder="blur"
+                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                 />
               </div>
             </Link>
@@ -222,19 +224,11 @@ export default function Header() {
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
                 >
-                  {session.user?.image ? (
-                    <Image
-                      src={session.user.image}
-                      alt={session.user.name || 'User avatar'}
-                      width={40}
-                      height={40}
-                      className="rounded-full border-2 border-orange-primary/30"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary font-bold">
-                      {session.user?.name?.[0] || session.user.email?.[0] || 'U'}
-                    </div>
-                  )}
+                  <Avatar 
+                    src={session.user?.image} 
+                    alt={session.user?.name || 'User avatar'} 
+                    className="w-10 h-10"
+                  />
                   <span className="text-brown-primary dark:text-dark-text font-medium hidden lg:block">
                     {session.user?.name}
                   </span>
@@ -383,19 +377,11 @@ export default function Header() {
                 ) : session ? (
                   <div className="pt-4 border-t border-orange-primary/20 dark:border-orange-primary/10">
                     <div className="flex items-center space-x-3 mb-4">
-                      {session.user?.image ? (
-                        <Image
-                          src={session.user.image}
-                          alt={session.user.name || 'User avatar'}
-                          width={40}
-                          height={40}
-                          className="rounded-full border-2 border-orange-primary/30"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-primary to-green-primary flex items-center justify-center text-white-primary font-bold">
-                          {session.user?.name?.[0] || session.user.email?.[0] || 'U'}
-                        </div>
-                      )}
+                      <Avatar 
+                        src={session.user?.image} 
+                        alt={session.user?.name || 'User avatar'} 
+                        className="w-10 h-10"
+                      />
                       <span className="text-brown-primary dark:text-dark-text font-medium">
                         {session.user?.name}
                       </span>

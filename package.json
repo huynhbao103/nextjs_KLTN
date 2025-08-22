@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "scrape:cookpad": "node scripts/scrape_cookpad.js",
+    "import:md": "node scripts/bulk_import_from_md.js .md/dishes.md"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.9.1",
@@ -22,6 +24,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/mongoose": "^5.11.96",
     "@types/react-datepicker": "^6.2.0",
+    "axios": "^1.7.7",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.6.1",
@@ -37,6 +40,7 @@
     "next": "14.0.4",
     "next-auth": "^5.0.0-beta.28",
     "nodemailer": "^6.10.1",
+    "puppeteer": "^22.15.0",
     "react": "^18.2.0",
     "react-datepicker": "^8.4.0",
     "react-dom": "^18.2.0",

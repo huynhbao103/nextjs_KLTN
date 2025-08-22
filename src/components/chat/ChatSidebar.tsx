@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import ChatHistory from './ChatHistory';
 import { Plus, X, MessageSquare, User } from 'lucide-react';
+import Avatar from '@/components/ui/avatar';
 
 interface ChatHistoryItem {
   _id: string;
@@ -85,17 +86,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {/* User info */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cream-primary/30 to-white-primary/30 dark:from-dark-bg/30 dark:to-dark-card/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-primary to-green-primary rounded-full flex items-center justify-center text-white-primary font-bold shadow-lg">
-              {session.user.image ? (
-                <img 
-                  src={session.user.image} 
-                  alt={session.user.name || 'User'} 
-                  className="w-10 h-10 rounded-full object-cover border-2 border-white-primary"
-                />
-              ) : (
-                <User className="w-5 h-5" />
-              )}
-            </div>
+            <Avatar 
+              src={session.user.image}
+              alt={session.user.name || 'User'}
+              size="md"
+              className="border-2 border-white-primary"
+            />
             <div className="flex-1 min-w-0">
               <p className="text-lg font-semibold text-brown-primary dark:text-dark-text truncate">
                 {session.user.name || 'Người dùng'}
