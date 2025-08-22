@@ -1,10 +1,8 @@
 import React from 'react'
 import { ChefHat } from 'lucide-react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
-import logo from '@/public/images/logo.png'
 
 export default function footer() {
   const { data: session } = useSession()
@@ -12,32 +10,20 @@ export default function footer() {
   return (
     <div>
    {/* CTA Section */}
-   <section className="relative z-20 px-6 py-20 bg-gradient-to-br from-brown-primary to-orange-primary dark:from-dark-card dark:to-orange-primary transition-colors duration-300">
+   <section className="relative z-20 px-6 py-20 bg-gradient-to-br from-brown-primary to-orange-primary dark:from-dark-card dark:to-orange-primary transition-all duration-500 ease-out">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold mb-8 text-white-primary"
+          <h2
+            className="text-4xl md:text-5xl font-bold mb-8 text-white-primary opacity-0 animate-fadeInUp"
           >
             Sẵn Sàng Khám Phá?
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-xl mb-12 text-white-primary/90"
+          </h2>
+          <p
+            className="text-xl mb-12 text-white-primary/90 opacity-0 animate-fadeInUp animation-delay-200"
           >
             Để tìm kiếm những trải nghiệm ẩm thực tuyệt vời
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+          </p>
+          <div
+            className="opacity-0 animate-fadeInUp animation-delay-400 hover:scale-105 active:scale-95 transition-transform duration-300"
           >
             <Link 
               href={session ? "/chat" : "/login"}
@@ -45,7 +31,7 @@ export default function footer() {
           >
             Bắt Đầu Miễn Phí
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -59,8 +45,8 @@ export default function footer() {
             >
               <div className="relative w-20 h-12 sm:w-24 sm:h-16 flex items-center justify-center">
                 <Image 
-                  src={logo} 
-                  alt="FoodAI Logo" 
+                 src="/images/logo.png" 
+                  alt="tastyMind Logo" 
                   fill
                   className="object-contain"
                   priority
