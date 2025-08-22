@@ -17,4 +17,8 @@ node_modules
  
  package-lock.json
 
- 
+/md/dishes.md
+/scripts/bulk_import_from_md.js
+scripts
+
+.md/
