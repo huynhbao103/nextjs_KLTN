@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, X, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat, Wheat, Cake, Wind, Search } from 'lucide-react';
+import { Utensils, X, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat, Wheat, Cake, Wind, Search, Zap, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -22,24 +22,92 @@ interface PreferenceModalProps {
   defaultAllergies?: string[];
 }
 
-const cookingMethodIcons: Record<string, { icon: JSX.Element; bgColor: string }> = {
-  'Gỏi': { icon: <Salad className="w-6 h-6 text-green-600" />, bgColor: 'bg-green-100 dark:bg-green-900/20' },
-  'Luộc': { icon: <Droplets className="w-6 h-6 text-blue-500" />, bgColor: 'bg-blue-100 dark:bg-blue-900/20' },
-  'Súp': { icon: <Soup className="w-6 h-6 text-orange-500" />, bgColor: 'bg-orange-100 dark:bg-orange-900/20' },
-  'Nướng': { icon: <Flame className="w-6 h-6 text-red-500" />, bgColor: 'bg-red-100 dark:bg-red-900/20' },
-  'Hấp': { icon: <Wind className="w-6 h-6 text-gray-500" />, bgColor: 'bg-gray-100 dark:bg-gray-900/20' },
-  'Chiên': { icon: <EggFried className="w-6 h-6 text-yellow-500" />, bgColor: 'bg-yellow-100 dark:bg-yellow-900/20' },
-  'Xào': { icon: <Drumstick className="w-6 h-6 text-amber-600" />, bgColor: 'bg-amber-100 dark:bg-amber-900/20' },
-  'Nấu': { icon: <ChefHat className="w-6 h-6 text-purple-600" />, bgColor: 'bg-purple-100 dark:bg-purple-900/20' },
-  'Hầm': { icon: <Soup className="w-6 h-6 text-stone-500" />, bgColor: 'bg-stone-100 dark:bg-stone-900/20' },
-  'Quay': { icon: <Flame className="w-6 h-6 text-orange-600" />, bgColor: 'bg-orange-100 dark:bg-orange-900/20' },
-  'Chè': { icon: <Cake className="w-6 h-6 text-pink-500" />, bgColor: 'bg-pink-100 dark:bg-pink-900/20' },
-  'Salad': { icon: <Wheat className="w-6 h-6 text-lime-600" />, bgColor: 'bg-lime-100 dark:bg-lime-900/20' },
-  'rim': { icon: <Utensils className="w-6 h-6 text-indigo-500" />, bgColor: 'bg-indigo-100 dark:bg-indigo-900/20' },
-  'kho': { icon: <Utensils className="w-6 h-6 text-teal-500" />, bgColor: 'bg-teal-100 dark:bg-teal-900/20' },
-  'nướng': { icon: <Flame className="w-6 h-6 text-red-600" />, bgColor: 'bg-red-100 dark:bg-red-900/20' },
-  'súp': { icon: <Soup className="w-6 h-6 text-orange-600" />, bgColor: 'bg-orange-100 dark:bg-orange-900/20' },
-  'nấu': { icon: <ChefHat className="w-6 h-6 text-purple-600" />, bgColor: 'bg-purple-100 dark:bg-purple-900/20' },
+// Cải thiện icon và màu sắc cho các phương pháp nấu
+const cookingMethodIcons: Record<string, { icon: JSX.Element; bgColor: string; textColor: string; description: string }> = {
+  'rim': { 
+    icon: <Utensils className="w-6 h-6" />, 
+    bgColor: 'bg-indigo-100 dark:bg-indigo-900/20', 
+    textColor: 'text-indigo-600 dark:text-indigo-400',
+    description: 'Rim với gia vị'
+  },
+  'xào': { 
+    icon: <Flame className="w-6 h-6" />, 
+    bgColor: 'bg-amber-100 dark:bg-amber-900/20', 
+    textColor: 'text-amber-600 dark:text-amber-400',
+    description: 'Xào nhanh với lửa lớn'
+  },
+  'salad': { 
+    icon: <Salad className="w-6 h-6" />, 
+    bgColor: 'bg-green-100 dark:bg-green-900/20', 
+    textColor: 'text-green-600 dark:text-green-400',
+    description: 'Trộn tươi sống'
+  },
+  'nướng': { 
+    icon: <Flame className="w-6 h-6" />, 
+    bgColor: 'bg-red-100 dark:bg-red-900/20', 
+    textColor: 'text-red-600 dark:text-red-400',
+    description: 'Nướng trên than hoa'
+  },
+  'súp': { 
+    icon: <Soup className="w-6 h-6" />, 
+    bgColor: 'bg-orange-100 dark:bg-orange-900/20', 
+    textColor: 'text-orange-600 dark:text-orange-400',
+    description: 'Nấu thành súp loãng'
+  },
+  'chè': { 
+    icon: <Cake className="w-6 h-6" />, 
+    bgColor: 'bg-pink-100 dark:bg-pink-900/20', 
+    textColor: 'text-pink-600 dark:text-pink-400',
+    description: 'Món tráng miệng ngọt'
+  },
+  'luộc': { 
+    icon: <Droplets className="w-6 h-6" />, 
+    bgColor: 'bg-blue-100 dark:bg-blue-900/20', 
+    textColor: 'text-blue-600 dark:text-blue-400',
+    description: 'Nấu trong nước sôi'
+  },
+  'hầm': { 
+    icon: <Soup className="w-6 h-6" />, 
+    bgColor: 'bg-stone-100 dark:bg-stone-900/20', 
+    textColor: 'text-stone-600 dark:text-stone-400',
+    description: 'Hầm nhừ với lửa nhỏ'
+  },
+  'quay': { 
+    icon: <Zap className="w-6 h-6" />, 
+    bgColor: 'bg-orange-100 dark:bg-orange-900/20', 
+    textColor: 'text-orange-600 dark:text-orange-400',
+    description: 'Quay trong lò nướng'
+  },
+  'gỏi': { 
+    icon: <Leaf className="w-6 h-6" />, 
+    bgColor: 'bg-lime-100 dark:bg-lime-900/20', 
+    textColor: 'text-lime-600 dark:text-lime-400',
+    description: 'Gỏi tươi với rau sống'
+  },
+  'hấp': { 
+    icon: <Wind className="w-6 h-6" />, 
+    bgColor: 'bg-gray-100 dark:bg-gray-900/20', 
+    textColor: 'text-gray-600 dark:text-gray-400',
+    description: 'Hấp cách thủy'
+  },
+  'kho': { 
+    icon: <Utensils className="w-6 h-6" />, 
+    bgColor: 'bg-teal-100 dark:bg-teal-900/20', 
+    textColor: 'text-teal-600 dark:text-teal-400',
+    description: 'Kho với nước mắm'
+  },
+  'nấu': { 
+    icon: <ChefHat className="w-6 h-6" />, 
+    bgColor: 'bg-purple-100 dark:bg-purple-900/20', 
+    textColor: 'text-purple-600 dark:text-purple-400',
+    description: 'Nấu chín với nước'
+  },
+  'chiên': { 
+    icon: <EggFried className="w-6 h-6" />, 
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/20', 
+    textColor: 'text-yellow-600 dark:text-yellow-400',
+    description: 'Chiên giòn với dầu'
+  },
 };
 
 export default function PreferenceModal({
@@ -129,7 +197,7 @@ export default function PreferenceModal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 40 }}
             transition={{ type: 'spring', damping: 24, stiffness: 300 }}
-            className="bg-white-primary dark:bg-dark-card p-6 rounded-3xl shadow-2xl max-w-4xl w-full border border-gray-200 dark:border-gray-700 relative max-h-[90vh] flex flex-col"
+            className="bg-white-primary dark:bg-dark-card p-6 rounded-3xl shadow-2xl max-w-5xl w-full border border-gray-200 dark:border-gray-700 relative max-h-[90vh] flex flex-col"
           >
             <button onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors" aria-label="Đóng">
               <X className="w-6 h-6" />
@@ -162,10 +230,10 @@ export default function PreferenceModal({
                         <button
                           key={ing}
                           onClick={() => toggleSelection(ing, selectedIngredients, setSelectedIngredients)}
-                          className={`p-3 text-sm rounded-lg text-center transition ${
+                          className={`p-3 text-sm rounded-lg text-center transition-all duration-300 ${
                             selectedIngredients.includes(ing) 
-                              ? 'bg-orange-primary text-white shadow-md' 
-                              : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200'
+                              ? 'bg-orange-primary text-white shadow-lg scale-105' 
+                              : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
                           }`}
                         >
                           {ing}
@@ -177,37 +245,51 @@ export default function PreferenceModal({
 
                 {step === 2 && (
                   <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                    <div className="max-h-[60vh] overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {cookingMethodPrompt?.options?.map((method) => {
-                        const isSelected = selectedMethods.includes(method);
-                        const methodIcon = cookingMethodIcons[method] || { 
-                          icon: <Utensils className="w-6 h-6 text-gray-500" />, 
-                          bgColor: 'bg-gray-100 dark:bg-gray-800/20' 
-                        };
-                        return (
-                          <button
-                            key={method}
-                            onClick={() => toggleSelection(method, selectedMethods, setSelectedMethods)}
-                            className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-orange-primary/60 min-h-[80px] ${
-                              isSelected
-                                ? 'border-orange-primary bg-orange-primary/10 dark:bg-orange-primary/20'
-                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-card hover:border-orange-primary dark:hover:border-orange-primary'
-                            }`}
-                            type="button"
-                          >
-                            <span className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${methodIcon.bgColor}`}>
-                              {methodIcon.icon}
-                            </span>
-                            <span className={`font-medium text-sm text-center ${
-                              isSelected 
-                                ? 'text-orange-primary' 
-                                : 'text-brown-primary dark:text-dark-text-secondary group-hover:text-orange-primary dark:group-hover:text-orange-primary'
-                            }`}>
-                              {method}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {cookingMethodPrompt?.options?.map((method) => {
+                          const isSelected = selectedMethods.includes(method);
+                          const methodInfo = cookingMethodIcons[method.toLowerCase()] || {
+                            icon: <Utensils className="w-6 h-6" />,
+                            bgColor: 'bg-gray-100 dark:bg-gray-900/20',
+                            textColor: 'text-gray-600 dark:text-gray-400',
+                            description: 'Phương pháp nấu'
+                          };
+                          
+                          return (
+                            <motion.button
+                              key={method}
+                              onClick={() => toggleSelection(method, selectedMethods, setSelectedMethods)}
+                              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-orange-primary/60 min-h-[100px] ${
+                                isSelected
+                                  ? 'border-orange-primary bg-orange-primary/10 dark:bg-orange-primary/20 shadow-lg scale-105'
+                                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-card hover:border-orange-primary dark:hover:border-orange-primary hover:shadow-md hover:scale-105'
+                              }`}
+                              type="button"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <span className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${methodInfo.bgColor} ${methodInfo.textColor}`}>
+                                {methodInfo.icon}
+                              </span>
+                              <span className={`font-semibold text-sm text-center mb-1 ${
+                                isSelected 
+                                  ? 'text-orange-primary' 
+                                  : 'text-brown-primary dark:text-dark-text-secondary group-hover:text-orange-primary dark:group-hover:text-orange-primary'
+                              }`}>
+                                {method}
+                              </span>
+                              <span className={`text-xs text-center opacity-70 ${
+                                isSelected 
+                                  ? 'text-orange-primary/80' 
+                                  : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-primary/70'
+                              }`}>
+                                {methodInfo.description}
+                              </span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}

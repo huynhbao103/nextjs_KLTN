@@ -539,6 +539,19 @@ export default function HomePage() {
       return;
     }
     
+    // Nếu chưa có sessionId nhưng user đã chọn preference trước đó, dùng luôn mà không cần hỏi lại
+    if (userContextPreference !== null) {
+      setIsTyping(true);
+      await processUserMessageWithContextFilter(
+        text,
+        weatherContext?.name?.trim() || 'Bình thường',
+        timeOfDay?.trim() || 'sáng',
+        userContextPreference
+      );
+      setIsTyping(false);
+      return;
+    }
+    
     // Lưu lại pending question và context, show modal
     setPendingQuestion(text);
     setPendingWeather(weatherContext?.name?.trim() || 'Bình thường');

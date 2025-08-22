@@ -145,7 +145,7 @@ export default function DishModal({ isOpen, onClose, dish, onSave, ingredients, 
   const addBulkInstructions = () => {
     if (bulkInstructions.trim()) {
       const instructionsList = bulkInstructions
-        .split(/[,\.\n]/)
+        .split(/\n/)  // Chỉ tách theo xuống dòng (newline)
         .map(item => item.trim())
         .filter(item => item);
 
@@ -414,13 +414,13 @@ export default function DishModal({ isOpen, onClose, dish, onSave, ingredients, 
                   {!isViewMode && (
                     <div className="mb-4 p-3 bg-blue-500/5 rounded-lg border border-blue-500/20">
                       <label className="block text-sm font-medium text-blue-500 mb-2">
-                        Thêm nhiều bước cùng lúc (mỗi dòng hoặc dấu phẩy)
+                        Thêm nhiều bước cùng lúc (mỗi dòng = 1 bước)
                       </label>
                       <div className="flex gap-2">
                         <textarea
                           value={bulkInstructions}
                           onChange={(e) => setBulkInstructions(e.target.value)}
-                          placeholder="Ví dụ:&#10;Ướp thịt 10 phút&#10;Xào hành, tỏi cho thơm&#10;Cho thịt vào đảo đều"
+                          placeholder="Ví dụ:&#10;Bước 1: Ướp thịt 10 phút&#10;Bước 2: Xào hành, tỏi cho thơm&#10;Bước 3: Cho thịt vào đảo đều"
                           rows={4}
                           className="flex-1 px-3 py-2 border border-blue-500/20 rounded-lg bg-white-primary dark:bg-dark-card text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                           onKeyDown={(e) => {
@@ -438,7 +438,9 @@ export default function DishModal({ isOpen, onClose, dish, onSave, ingredients, 
                           Thêm
                         </button>
                       </div>
-                      <p className="text-xs text-blue-500/70 mt-2">💡 Ctrl+Enter để thêm nhanh</p>
+                      <p className="text-xs text-blue-500/70 mt-2">
+                        💡 Mỗi dòng = 1 bước. Dấu phẩy, chấm không tách thành bước mới. Ctrl+Enter để thêm nhanh
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">

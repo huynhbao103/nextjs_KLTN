@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChefHat, Plus, Loader2 } from 'lucide-react';
+import { ChefHat, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import DishDetailModal from './DishDetailModal';
 
 interface Dish {
@@ -35,16 +35,42 @@ interface FoodRecommendationsProps {
 }
 
 const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSelectFood, foods, user_info, selected_cooking_methods }) => {
-  const [showAll, setShowAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Sử dụng foods array trực tiếp thay vì parse message
   const foodList = foods || [];
-  const initialCount = 5;
-  const displayedFoods = showAll ? foodList : foodList.slice(0, initialCount);
-  const hasMore = foodList.length > initialCount;
+  const itemsPerPage = 6; // Hiển thị 6 món mỗi lần
+  const totalPages = Math.ceil(foodList.length / itemsPerPage);
+  
+  // Helper: build compact pagination items with ellipses
+  const getPaginationItems = () => {
+    const items: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 0; i < totalPages; i++) items.push(i);
+      return items;
+    }
+    // Always show first
+    items.push(0);
+    // Left ellipsis
+    if (currentPage > 3) items.push('left-ellipsis');
+    // Middle range
+    const start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages - 2, currentPage + 1);
+    for (let i = start; i <= end; i++) items.push(i);
+    // Right ellipsis
+    if (currentPage < totalPages - 4) items.push('right-ellipsis');
+    // Always show last
+    items.push(totalPages - 1);
+    return items;
+  };
+
+  // Tính toán món ăn cần hiển thị cho trang hiện tại
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedFoods = foodList.slice(startIndex, endIndex);
 
   // Hàm xử lý khi bấm vào món ăn
   const handleFoodClick = async (foodName: string) => {
@@ -74,13 +100,32 @@ const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSe
     }
   };
 
+  // Hàm chuyển trang
+  const goToPage = (page: number) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
+  // Hàm chuyển trang tiếp theo
+  const nextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  // Hàm chuyển trang trước đó
+  const prevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   if (foodList.length === 0) {
     return null;
   }
 
-    return (
+  return (
     <>
       <div className="mt-6 p-6 bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-3xl border border-orange-200 dark:border-orange-800 shadow-lg">
         <div className="flex items-center gap-3 mb-6">
@@ -120,21 +165,70 @@ const FoodRecommendations: React.FC<FoodRecommendationsProps> = ({ message, onSe
           ))}
         </div>
         
-        {hasMore && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.5 }}
-            onClick={() => setShowAll(!showAll)}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-orange-primary dark:text-orange-primary hover:text-orange-primary/80 dark:hover:text-orange-primary/80 transition-colors mt-4"
-          >
-            <Plus className="w-4 h-4" />
-            {showAll ? 'Thu gọn' : `Xem thêm ${foodList.length - initialCount} món`}
-          </motion.button>
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-6">
+            {/* Previous Button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              onClick={prevPage}
+              disabled={currentPage === 0}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-orange-primary dark:text-orange-primary hover:text-orange-primary/80 dark:hover:text-orange-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Trước
+            </motion.button>
+            
+            {/* Page Numbers - compact, no-wrap, horizontal scroll if overflow */}
+            <div className="flex max-w-full overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 whitespace-nowrap px-2">
+                {getPaginationItems().map((item, index) => {
+                  if (typeof item === 'string') {
+                    return (
+                      <span key={`${item}-${index}`} className="px-2 text-sm text-gray-500">…</span>
+                    );
+                  }
+                  const pageIndex = item as number;
+                  const isActive = currentPage === pageIndex;
+                  return (
+                    <motion.button
+                      key={pageIndex}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.6 + index * 0.05 }}
+                      onClick={() => goToPage(pageIndex)}
+                      className={`px-3 py-2 text-sm rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-orange-primary text-white shadow-lg'
+                          : 'text-orange-primary dark:text-orange-primary hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                      }`}
+                    >
+                      {pageIndex + 1}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Next Button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              onClick={nextPage}
+              disabled={currentPage === totalPages - 1}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-orange-primary dark:text-orange-primary hover:text-orange-primary/80 dark:hover:text-orange-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp
+              <ChevronRight className="w-4 h-4" />
+            </motion.button>
+          </div>
         )}
         
         <div className="text-sm text-gray-600 dark:text-gray-400 mt-6 text-center font-medium">
-          Tổng cộng: <span className="font-bold text-orange-600 dark:text-orange-400">{foodList.length}</span> món ăn
+          Trang {currentPage + 1} / {totalPages} • Tổng cộng: <span className="font-bold text-orange-600 dark:text-orange-400">{foodList.length}</span> món ăn
         </div>
       </div>
 
