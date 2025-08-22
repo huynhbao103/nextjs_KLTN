@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       requestBody,
       { 
         headers: requestHeaders,
-        timeout: 30000 // 30 second timeout
+        timeout: 90000 // 30 second timeout
       }
     );
 
