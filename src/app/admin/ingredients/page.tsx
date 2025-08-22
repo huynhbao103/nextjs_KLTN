@@ -408,38 +408,61 @@ export default function AdminIngredientsPage() {
               className="mt-8"
             >
               <div className="card-glass p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div className="text-sm text-brown-primary/70 dark:text-dark-text-secondary">
                     Hiển thị {((currentPage - 1) * 20) + 1} - {Math.min(currentPage * 20, totalItems)} của {totalItems} nguyên liệu
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 text-brown-primary dark:text-dark-text hover:bg-brown-primary/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-brown-primary dark:text-dark-text hover:bg-brown-primary/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     >
                       Trước
                     </button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-2 rounded-lg transition-colors ${
-                            currentPage === page
-                              ? 'bg-green-primary text-white-primary'
-                              : 'text-brown-primary dark:text-dark-text hover:bg-brown-primary/10'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                    {/* Compact page numbers with ellipses; nowrap + horizontal scroll if long */}
+                    <div className="max-w-full overflow-x-auto no-scrollbar">
+                      <div className="flex items-center gap-2 whitespace-nowrap px-1">
+                        {(() => {
+                          const items: (number | string)[] = [];
+                          if (totalPages <= 7) {
+                            for (let i = 1; i <= totalPages; i++) items.push(i);
+                          } else {
+                            items.push(1);
+                            if (currentPage > 4) items.push('left-ellipsis');
+                            const start = Math.max(2, currentPage - 1);
+                            const end = Math.min(totalPages - 1, currentPage + 1);
+                            for (let i = start; i <= end; i++) items.push(i);
+                            if (currentPage < totalPages - 3) items.push('right-ellipsis');
+                            items.push(totalPages);
+                          }
+                          return items.map((item, idx) => {
+                            if (typeof item === 'string') {
+                              return <span key={`${item}-${idx}`} className="px-2 text-sm text-brown-primary/50">…</span>;
+                            }
+                            const page = item as number;
+                            const isActive = currentPage === page;
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`px-3 py-2 rounded-lg transition-colors ${
+                                  isActive
+                                    ? 'bg-green-primary text-white-primary'
+                                    : 'text-brown-primary dark:text-dark-text hover:bg-brown-primary/10'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-brown-primary dark:text-dark-text hover:bg-brown-primary/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-brown-primary dark:text-dark-text hover:bg-brown-primary/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     >
                       Sau
                     </button>
