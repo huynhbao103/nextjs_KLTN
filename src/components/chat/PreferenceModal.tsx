@@ -191,14 +191,14 @@ export default function PreferenceModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+                      className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4 overflow-visible"
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 40 }}
             transition={{ type: 'spring', damping: 24, stiffness: 300 }}
-            className="bg-white-primary dark:bg-dark-card p-6 rounded-3xl shadow-2xl max-w-5xl w-full border border-gray-200 dark:border-gray-700 relative max-h-[90vh] flex flex-col"
+            className="bg-white-primary dark:bg-dark-card p-6 rounded-3xl shadow-2xl max-w-5xl w-full border border-gray-200 dark:border-gray-700 relative max-h-[90vh] flex flex-col overflow-visible min-h-fit"
           >
             <button onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors" aria-label="Đóng">
               <X className="w-6 h-6" />
@@ -216,7 +216,7 @@ export default function PreferenceModal({
               
             </div>
 
-            <div className="flex-grow overflow-y-auto px-2">
+            <div className="flex-grow overflow-y-auto px-2 overflow-x-visible min-h-0 ">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
@@ -229,7 +229,7 @@ export default function PreferenceModal({
                         className="pl-10"
                       />
                     </div>
-                    <div className="max-h-[50vh] overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="max-h-[50vh] overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-x-visible">
                       {filteredIngredients.map(ing => (
                         <button
                           key={ing}
@@ -250,7 +250,7 @@ export default function PreferenceModal({
 
                 {step === 2 && (
                   <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                    <div className="max-h-[60vh] overflow-y-auto pr-2 overflow-x-visible">
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {cookingMethodPrompt?.options?.map((method) => {
                           const isSelected = selectedMethods.includes(method);
@@ -301,9 +301,9 @@ export default function PreferenceModal({
               </AnimatePresence>
             </div>
             
-            <div className="flex justify-center items-center gap-4 mt-6 pt-6 border-t dark:border-gray-700">
+            <div className="flex justify-center items-center gap-4 mt-6 pt-6 border-t dark:border-gray-700 relative z-10 overflow-visible flex-shrink-0 sticky bottom-0 bg-white-primary dark:bg-dark-card py-4 shadow-lg rounded-b-3xl -mx-6 -mb-6 px-6 border-l-0 border-r-0 border-b-0 w-full left-0 right-0 bottom-0 inset-x-0 inset-y-0 h-auto min-h-fit max-h-none overflow-visible z-50 !important" style={{ position: 'sticky', bottom: 0, zIndex: 50, display: 'flex', visibility: 'visible', opacity: 1, pointerEvents: 'auto', transform: 'none', clipPath: 'none', filter: 'none', backfaceVisibility: 'visible', willChange: 'auto', isolation: 'auto', contain: 'none', mixBlendMode: 'normal', perspective: 'none' }}>
               {step === 2 && (
-                <Button variant="outline" onClick={handleBack}>
+                <Button variant="outline" onClick={handleBack} className="flex-shrink-0">
                   Quay Lại
                 </Button>
               )}
@@ -311,7 +311,8 @@ export default function PreferenceModal({
               {step === 1 ? (
                 <Button 
                   onClick={handleNext}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-400 to-pink-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-pink-500 transition-all"
+                  className="px-8 py-3 bg-gradient-to-r from-orange-400 to-pink-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-pink-500 transition-all relative z-20 flex-shrink-0"
+              
                 >
                   {selectedIngredients.length > 0 
                     ? `Tiếp Tục với ${selectedIngredients.length} nguyên liệu` 
@@ -321,7 +322,8 @@ export default function PreferenceModal({
               ) : (
                 <Button 
                   onClick={handleConfirm}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-400 to-pink-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-pink-500 transition-all"
+                  className="px-8 py-3 bg-gradient-to-r from-orange-400 to-pink-400 text-white-primary rounded-lg text-lg font-semibold shadow-lg hover:from-orange-500 hover:to-pink-500 transition-all relative z-20 flex-shrink-0"
+                
                 >
                   Xác nhận
                 </Button>
