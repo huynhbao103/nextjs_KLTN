@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, BarChart, Heart, Cpu, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat } from 'lucide-react';
+import { CheckCircle, BarChart, Heart, Cpu, Soup, Salad, Flame, Droplets, EggFried, Drumstick, ChefHat, ThermometerSun } from 'lucide-react';
 
 interface AnalysisStepProps {
   step: string;
@@ -11,9 +11,9 @@ const stepIcons: Record<string, { icon: JSX.Element; color: string; title: strin
   'bmi_analysis': { icon: <BarChart />, color: 'text-blue-500', title: 'Phân tích BMI' },
   'disease_analysis': { icon: <Heart />, color: 'text-red-500', title: 'Phân tích Bệnh lý' },
   'cooking_method_filter_disease': { icon: <ChefHat />, color: 'text-green-500', title: 'Lọc phương pháp nấu' },
+  'context_analysis': { icon: <ThermometerSun />, color: 'text-amber-500', title: 'Phân tích bối cảnh' },
   'default': { icon: <CheckCircle />, color: 'text-gray-500', title: 'Phân tích chung' }
 };
-
 const AnalysisStep: React.FC<AnalysisStepProps> = ({ step, message }) => {
   const { icon, color, title } = stepIcons[step] || stepIcons.default;
   const messageWithoutPrefix = message.replace(`[${step.toUpperCase()}] `, '');

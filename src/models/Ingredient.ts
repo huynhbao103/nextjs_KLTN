@@ -1,15 +1,17 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IIngredient extends Document {
-  id: number;
+  id: number;           // Giữ nguyên là number để tương thích với database cũ
   name: string;
+  category?: string;    // Thêm field category
+  description?: string; // Thêm field description
   created_at: Date;
   updated_at: Date;
 }
 
 const IngredientSchema: Schema = new Schema({
   id: {
-    type: Number,
+    type: Number,       // Giữ nguyên là Number để tương thích với database cũ
     required: true,
     unique: true,
     index: true
@@ -18,6 +20,16 @@ const IngredientSchema: Schema = new Schema({
     type: String,
     required: true,
     index: true
+  },
+  category: {           // Thêm field category
+    type: String,
+    required: false,
+    default: ''
+  },
+  description: {        // Thêm field description
+    type: String,
+    required: false,
+    default: ''
   },
   created_at: {
     type: Date,

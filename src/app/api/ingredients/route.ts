@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // Sử dụng Promise.all để parallel queries
     const [ingredients, total] = await Promise.all([
       Ingredient.find(query)
-        .select('name id category description') // Chỉ select fields cần thiết
+        .select('_id id name category description created_at updated_at') // Bao gồm tất cả fields cần thiết
         .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
@@ -88,19 +88,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Tự động sinh ID nếu không có
+    // Tạo ID dạng number để tương thích với database cũ
     let finalId = body.id;
     if (!finalId) {
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 8);
-      finalId = `ingredient_${timestamp}_${randomId}`;
+      finalId = Date.now(); // Sử dụng timestamp làm ID
+    }
+
+    // Kiểm tra xem ID đã tồn tại chưa
+    const existingIngredient = await Ingredient.findOne({ id: finalId });
+    if (existingIngredient) {
+      // Nếu ID đã tồn tại, tạo ID mới
+      finalId = Date.now() + Math.floor(Math.random() * 1000);
     }
 
     const ingredient = new Ingredient({
       id: finalId,
-      name,
-      category,
-      description
+      name: name.trim(),
+      category: category?.trim() || '',
+      description: description?.trim() || ''
     });
 
     await ingredient.save();

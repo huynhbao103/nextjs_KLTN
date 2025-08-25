@@ -41,7 +41,7 @@ export async function PUT(
     await dbConnect();
     
     const body = await request.json();
-    const { name } = body;
+    const { name, category, description } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -50,9 +50,16 @@ export async function PUT(
       );
     }
 
+    const updateData: any = { 
+      name: name.trim(),
+      updated_at: new Date()
+    };
+    if (category !== undefined) updateData.category = category?.trim() || '';
+    if (description !== undefined) updateData.description = description?.trim() || '';
+
     const ingredient = await Ingredient.findByIdAndUpdate(
       params.id,
-      { name },
+      updateData,
       { new: true, runValidators: true }
     );
 
