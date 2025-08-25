@@ -31,10 +31,14 @@ const IngredientModal = dynamic(() => import('@/components/admin/IngredientModal
 
 interface Ingredient {
   _id?: string;
-  id?: number;
+  id?: number;          // Giữ nguyên là number để tương thích với database
   name: string;
+  category?: string;    // Thêm field category
+  description?: string; // Thêm field description
   createdAt?: string;
   updatedAt?: string;
+  created_at?: string;  // Thêm field created_at
+  updated_at?: string;  // Thêm field updated_at
 }
 
 export default function AdminIngredientsPage() {
@@ -361,9 +365,26 @@ export default function AdminIngredientsPage() {
                           <h3 className="text-lg font-semibold text-brown-primary dark:text-dark-text mb-1">
                             {ingredient.name}
                           </h3>
-                          <p className="text-sm text-brown-primary/60 dark:text-dark-text-secondary">
-                            ID: {ingredient.id}
-                          </p>
+                          {ingredient.id && (
+                            <p className="text-sm text-brown-primary/60 dark:text-dark-text-secondary mb-1">
+                              ID: {ingredient.id}
+                            </p>
+                          )}
+                          {ingredient.category && ingredient.category.trim() && (
+                            <p className="text-xs text-green-primary bg-green-primary/10 px-2 py-1 rounded-full inline-block mb-1">
+                              {ingredient.category}
+                            </p>
+                          )}
+                          {ingredient.description && ingredient.description.trim() && (
+                            <p className="text-xs text-brown-primary/70 dark:text-dark-text-secondary overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              {ingredient.description}
+                            </p>
+                          )}
+                          {(!ingredient.category || !ingredient.category.trim()) && (!ingredient.description || !ingredient.description.trim()) && (
+                            <p className="text-xs text-brown-primary/40 dark:text-dark-text-secondary/40 italic">
+                              Chưa có thông tin bổ sung
+                            </p>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           <button 
@@ -390,7 +411,7 @@ export default function AdminIngredientsPage() {
                         </div>
                       </div>
                       <div className="text-xs text-brown-primary/50 dark:text-dark-text-secondary">
-                        <p>Cập nhật: {new Date(ingredient.updatedAt || ingredient.createdAt || Date.now()).toLocaleDateString('vi-VN')}</p>
+                        <p>Cập nhật: {new Date(ingredient.updated_at || ingredient.created_at || ingredient.updatedAt || ingredient.createdAt || Date.now()).toLocaleDateString('vi-VN')}</p>
                       </div>
                     </motion.div>
                   ))}

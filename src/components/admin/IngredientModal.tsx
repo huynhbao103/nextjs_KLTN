@@ -6,8 +6,10 @@ import { X } from 'lucide-react';
 
 interface Ingredient {
   _id?: string;
-  id?: number;
+  id?: number;          // Giữ nguyên là number để tương thích với database
   name: string;
+  category?: string;    // Thêm field category
+  description?: string; // Thêm field description
   createdAt?: string;
   updatedAt?: string;
 }
@@ -22,7 +24,9 @@ interface IngredientModalProps {
 
 export default function IngredientModal({ isOpen, onClose, ingredient, onSave, isViewMode = false }: IngredientModalProps) {
   const [formData, setFormData] = useState<Ingredient>({
-    name: ''
+    name: '',
+    category: '',        // Thêm field category
+    description: ''      // Thêm field description
   });
 
   useEffect(() => {
@@ -32,7 +36,9 @@ export default function IngredientModal({ isOpen, onClose, ingredient, onSave, i
       });
     } else {
       setFormData({
-        name: ''
+        name: '',
+        category: '',     // Reset category
+        description: ''   // Reset description
       });
     }
   }, [ingredient]);
@@ -84,6 +90,36 @@ export default function IngredientModal({ isOpen, onClose, ingredient, onSave, i
                     className="w-full px-4 py-3 border border-brown-primary/20 rounded-lg bg-white-primary dark:bg-dark-card text-brown-primary dark:text-dark-text placeholder-brown-primary/50 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:border-transparent disabled:opacity-50"
                     placeholder="Nhập tên nguyên liệu..."
                     required
+                  />
+                </div>
+
+                {/* Danh mục */}
+                <div>
+                  <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                    Danh mục
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.category || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    disabled={isViewMode}
+                    className="w-full px-4 py-3 border border-brown-primary/20 rounded-lg bg-white-primary dark:bg-dark-card text-brown-primary dark:text-dark-text placeholder-brown-primary/50 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:border-transparent disabled:opacity-50"
+                    placeholder="Nhập danh mục (tùy chọn)..."
+                  />
+                </div>
+
+                {/* Mô tả */}
+                <div>
+                  <label className="block text-sm font-medium text-brown-primary dark:text-dark-text mb-2">
+                    Mô tả
+                  </label>
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    disabled={isViewMode}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-brown-primary/20 rounded-lg bg-white-primary dark:bg-dark-card text-brown-primary dark:text-dark-text placeholder-brown-primary/50 focus:outline-none focus:ring-2 focus:ring-orange-primary focus:border-transparent disabled:opacity-50 resize-none"
+                    placeholder="Nhập mô tả (tùy chọn)..."
                   />
                 </div>
 
